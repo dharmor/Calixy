@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace UnifiedAppointments\Starter;
 
+use Composer\InstalledVersions;
 use DateTimeImmutable;
 use DateTimeZone;
 use RuntimeException;
@@ -31,11 +32,13 @@ final class StartupApplication
     private const SYSTEM_OWNER_ID = 'starter-app';
     private const STARTUP_PAGES = [
         'dashboard',
+        'about',
         'calendar',
         'booking',
         'appointments',
         'waitlist',
         'services',
+        'booking-policy',
         'locations',
         'team',
         'notifications',
@@ -54,6 +57,8 @@ final class StartupApplication
     private string $companyName = 'Your Company';
 
     private ?string $companyLogoUrl = null;
+
+    private string $applicationVersion = 'unknown';
 
     private ThemeManager $themeManager;
 
@@ -123,7 +128,7 @@ final class StartupApplication
 
         if (!$this->config->shouldAutoBootstrap()) {
             throw new RuntimeException(
-                'The starter page runs only in the startup SQLite edition. Switch back to startup mode or use the Pro install workflow.',
+                'The starter page requires startup auto-bootstrap mode. Enable startup mode or run the install workflow.',
             );
         }
 
@@ -137,7 +142,7 @@ final class StartupApplication
         $databasePath = $this->config->database ?: $this->config->host;
 
         if ($databasePath === null || $databasePath === '') {
-            throw new RuntimeException('Startup SQLite database path is not configured.');
+            throw new RuntimeException('Startup database path is not configured.');
         }
 
         $directory = dirname($databasePath);
@@ -178,6 +183,7 @@ final class StartupApplication
     {
         $this->companyName = $this->repository->getSystemConfig('company_name') ?? 'Your Company';
         $this->companyLogoUrl = $this->stringOrNull($this->repository->getSystemConfig('company_logo_url'));
+        $this->applicationVersion = $this->resolveApplicationVersion();
     }
 
     private function seedTimezoneCatalog(): void
@@ -220,6 +226,18 @@ final class StartupApplication
                 null,
                 'system',
             );
+        }
+
+        foreach ([
+            'booking_policy_summary' => 'Appointments can be rescheduled or cancelled up to 24 hours in advance.',
+            'booking_policy_cancellation' => 'Cancellations inside 24 hours may incur the configured fee.',
+            'booking_policy_no_show' => 'No-shows may be charged the configured no-show fee.',
+        ] as $key => $value) {
+            if ($this->repository->hasSystemConfig($key)) {
+                continue;
+            }
+
+            $this->repository->upsertSystemConfig($key, $value, 'system');
         }
 
         foreach ([
@@ -295,7 +313,7 @@ final class StartupApplication
                 'recipient' => 'owners@example.test',
                 'sender_name' => 'Your Company',
                 'trigger_summary' => 'Daily agenda and waitlist summary',
-                'config_payload' => 'Digest is generated from the startup SQLite schedule.',
+                'config_payload' => 'Digest is generated from the starter schedule.',
             ],
         ];
 
@@ -362,6 +380,7 @@ final class StartupApplication
                 'create_team_member' => $this->createTeamMember(),
                 'update_team_member' => $this->updateTeamMember(),
                 'save_notification_setting' => $this->saveNotificationSetting(),
+                'save_booking_policy' => $this->saveBookingPolicy(),
                 'save_reminder_schedule' => $this->saveReminderSchedule(),
                 'save_calendar_connection' => $this->saveCalendarConnection(),
                 default => throw new RuntimeException('Unknown starter action.'),
@@ -441,11 +460,15 @@ final class StartupApplication
         $service = $this->mustFindService($this->requiredString($_POST['service'] ?? null, 'Service is required.'));
         $timezone = $this->validatedTimezone((string) ($service['timezone'] ?? $this->appTimezone));
         $customerEmail = $this->stringOrNull($_POST['customer_email'] ?? null);
-        $validatedReminderSendAt = $this->validatedReminderSchedule(
-            reminderInput: $_POST['reminder_send_at'] ?? null,
-            appointmentStartUtc: $slotStart->setTimezone(new DateTimeZone('UTC')),
-            customerEmail: $customerEmail,
-        );
+        $validatedReminderSendAt = null;
+
+        if (isset($_POST['send_email_reminder'])) {
+            $validatedReminderSendAt = $this->validatedReminderSchedule(
+                reminderInput: $_POST['reminder_send_at'] ?? null,
+                appointmentStartUtc: $slotStart->setTimezone(new DateTimeZone('UTC')),
+                customerEmail: $customerEmail,
+            );
+        }
 
         $appointmentId = $this->scheduler->bookAppointment(new BookAppointmentData(
             serviceId: $service['id'],
@@ -702,6 +725,25 @@ final class StartupApplication
         ]);
     }
 
+    private function saveBookingPolicy(): void
+    {
+        $this->repository->upsertSystemConfig(
+            'booking_policy_summary',
+            $this->requiredString($_POST['booking_policy_summary'] ?? null, 'Booking policy summary is required.'),
+            'system',
+        );
+        $this->repository->upsertSystemConfig(
+            'booking_policy_cancellation',
+            $this->requiredString($_POST['booking_policy_cancellation'] ?? null, 'Cancellation policy is required.'),
+            'system',
+        );
+        $this->repository->upsertSystemConfig(
+            'booking_policy_no_show',
+            $this->requiredString($_POST['booking_policy_no_show'] ?? null, 'No-show policy is required.'),
+            'system',
+        );
+    }
+
     private function saveReminderSchedule(): void
     {
         $appointmentId = $this->requiredString($_POST['appointment_id'] ?? null, 'Appointment is required.');
@@ -757,6 +799,7 @@ final class StartupApplication
         ));
         $calendarConnections = $this->repository->listCalendarConnections(self::SYSTEM_OWNER_TYPE, self::SYSTEM_OWNER_ID);
         $systemConfig = $this->repository->listSystemConfig('system');
+        $systemConfigMap = $this->systemConfigMap($systemConfig);
         $mailServerConfig = $this->systemConfigMap($this->repository->listSystemConfig('mail_server'));
         $emailDispatches = $this->repository->listEmailDispatches(12);
         $timezones = $this->repository->listTimezones();
@@ -798,6 +841,7 @@ final class StartupApplication
         )), $teamMembers);
         $flash = $this->pullFlash();
         $pages = $this->pages();
+        $bookingPolicy = $this->bookingPolicyState($systemConfigMap);
         $themeOptions = $this->themeManager->all();
         $notificationMap = $this->notificationMap($notificationSettings);
         $connectionMap = $this->calendarConnectionMap($calendarConnections);
@@ -816,6 +860,8 @@ final class StartupApplication
             'appointments' => $appointments,
             'availabilityExceptions' => $availabilityExceptions,
             'availabilityRules' => $availabilityRules,
+            'applicationVersion' => $this->applicationVersion,
+            'bookingPolicy' => $bookingPolicy,
             'calendarConnections' => $calendarConnections,
             'calendarConnectionMap' => $connectionMap,
             'calendarWeeks' => $calendarWeeks,
@@ -901,7 +947,7 @@ final class StartupApplication
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Unified Appointments Startup Error</title>
+    <title>Calixy Startup Error</title>
     <style>
         :root {
             {$vars}
@@ -938,9 +984,9 @@ final class StartupApplication
 </head>
 <body>
 <main>
-    <h1>Unified Appointments could not start</h1>
+    <h1>Calixy could not start</h1>
     <p>{$message}</p>
-    <p>The startup page is designed for the SQLite startup edition. If you are moving to Pro or another database engine, use <code>php artisan unified-appointments:install</code> after configuring that connection.</p>
+    <p>The starter workspace uses startup auto-bootstrap mode. For a custom deployment workflow, use <code>php artisan unified-appointments:install</code> after configuring your connection.</p>
 </main>
 </body>
 </html>
@@ -1304,6 +1350,12 @@ HTML;
                 'group' => 'Overview',
                 'description' => 'Daily status, starter health, and queue visibility.',
             ],
+            'about' => [
+                'label' => 'About',
+                'icon' => 'AB',
+                'group' => 'Overview',
+                'description' => 'Application identity, logo, and running version.',
+            ],
             'calendar' => [
                 'label' => 'Calendar',
                 'icon' => 'CA',
@@ -1333,6 +1385,12 @@ HTML;
                 'icon' => 'SV',
                 'group' => 'Setup',
                 'description' => 'Services, branding, mail server, availability, blackout dates, and system timezone.',
+            ],
+            'booking-policy' => [
+                'label' => 'Booking Policy',
+                'icon' => 'BP',
+                'group' => 'Setup',
+                'description' => 'Edit cancellation, reminder, and no-show policy text.',
             ],
             'locations' => [
                 'label' => 'Locations',
@@ -1586,7 +1644,7 @@ HTML;
     private function successMessageFor(string $action): string
     {
         return match ($action) {
-            'create_service' => 'Service saved to the startup SQLite app.',
+            'create_service' => 'Service saved.',
             'add_rule' => 'Weekly availability added.',
             'add_exception' => 'Blackout added.',
             'book_appointment' => 'Appointment booked without overlap.',
@@ -1600,10 +1658,58 @@ HTML;
             'create_team_member' => 'Team member saved.',
             'update_team_member' => 'Team member updated.',
             'save_notification_setting' => 'Notification settings saved.',
+            'save_booking_policy' => 'Booking policy saved.',
             'save_reminder_schedule' => 'Reminder schedule saved.',
             'save_calendar_connection' => 'Calendar settings saved.',
             default => 'Saved.',
         };
+    }
+
+    /**
+     * @param array<string, string|null> $systemConfig
+     * @return array<string, string>
+     */
+    private function bookingPolicyState(array $systemConfig): array
+    {
+        return [
+            'summary' => trim((string) ($systemConfig['booking_policy_summary'] ?? 'Appointments can be rescheduled or cancelled up to 24 hours in advance.')),
+            'cancellation' => trim((string) ($systemConfig['booking_policy_cancellation'] ?? 'Cancellations inside 24 hours may incur the configured fee.')),
+            'no_show' => trim((string) ($systemConfig['booking_policy_no_show'] ?? 'No-shows may be charged the configured no-show fee.')),
+        ];
+    }
+
+    private function resolveApplicationVersion(): string
+    {
+        if (class_exists(InstalledVersions::class)) {
+            try {
+                $root = InstalledVersions::getRootPackage();
+                $prettyVersion = $root['pretty_version'] ?? null;
+
+                if (is_string($prettyVersion) && $prettyVersion !== '') {
+                    return $prettyVersion;
+                }
+            } catch (Throwable) {
+                // Fallback to composer.json when Composer metadata is unavailable.
+            }
+        }
+
+        $composerPath = $this->packageRoot . DIRECTORY_SEPARATOR . 'composer.json';
+
+        if (!is_file($composerPath)) {
+            return 'unknown';
+        }
+
+        $decoded = json_decode((string) file_get_contents($composerPath), true);
+
+        if (is_array($decoded)) {
+            $version = $decoded['version'] ?? null;
+
+            if (is_string($version) && $version !== '') {
+                return $version;
+            }
+        }
+
+        return 'unknown';
     }
 
     /**
@@ -2211,3 +2317,4 @@ HTML;
         return (string) ($teamMembers[0]['member_key'] ?? self::DEFAULT_OWNER_ID);
     }
 }
+

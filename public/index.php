@@ -21,7 +21,7 @@ if (is_file($autoloadPath) && is_file($bootstrapPath)) {
 if (!is_file($packageAutoloadPath)) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Unified Appointments package autoload file is missing.';
+    echo 'Calixy package autoload file is missing.';
 
     return;
 }
@@ -30,3 +30,4 @@ require $packageAutoloadPath;
 
 $app = new \UnifiedAppointments\Starter\StartupApplication(dirname(__DIR__));
 $app->run();
+

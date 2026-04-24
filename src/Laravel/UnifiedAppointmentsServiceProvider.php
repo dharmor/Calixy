@@ -2,8 +2,10 @@
 
 namespace UnifiedAppointments\Laravel;
 
+use Composer\InstalledVersions;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Support\Facades\Route;
+use Throwable;
 use UnifiedAppointments\Config\UnifiedAppointmentsConfig;
 use UnifiedAppointments\Database\SchemaManager;
 use UnifiedAppointments\Database\UnifiedDatabaseConnector;
@@ -150,6 +152,19 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
             ->group(function (): void {
                 require __DIR__ . '/../../routes/api.php';
             });
+
+        $webMiddleware = $routes['web_middleware'] ?? ['web'];
+
+        if (!is_array($webMiddleware)) {
+            $webMiddleware = [$webMiddleware];
+        }
+
+        Route::middleware($webMiddleware)
+            ->prefix((string) ($routes['prefix'] ?? 'unified-appointments'))
+            ->as((string) ($routes['name_prefix'] ?? 'unified-appointments.'))
+            ->group(function (): void {
+                require __DIR__ . '/../../routes/web.php';
+            });
     }
 
     private function registerAboutDetails(): void
@@ -160,7 +175,7 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
 
         $config = $this->app->make(UnifiedAppointmentsConfig::class);
 
-        AboutCommand::add('Unified Appointments', fn (): array => [
+        AboutCommand::add('Calixy', fn (): array => [
             'Edition' => $config->edition,
             'Laravel Connection' => (string) ($config->connection ?? config('database.default', 'sqlite')),
             'Driver' => $config->driver,
@@ -170,4 +185,24 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
             'Database Library' => $config->databaseLibraryPath,
         ]);
     }
+
+    public static function packageVersion(): string
+    {
+        if (!class_exists(InstalledVersions::class)) {
+            return 'unknown';
+        }
+
+        try {
+            if (!InstalledVersions::isInstalled('alpha9/unified-appointments')) {
+                return 'unknown';
+            }
+
+            $version = InstalledVersions::getPrettyVersion('alpha9/unified-appointments');
+
+            return is_string($version) && $version !== '' ? $version : 'unknown';
+        } catch (Throwable) {
+            return 'unknown';
+        }
+    }
 }
+

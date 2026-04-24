@@ -1,6 +1,6 @@
-# Unified Appointments
+# Calixy
 
-`Unified Appointments` is a Laravel-compatible appointment and availability package that uses the Unified Databases connection layer instead of Laravel's native database manager.
+`Calixy` is a Laravel-compatible appointment and availability package that uses the Unified Databases connection layer instead of Laravel's native database manager.
 
 The package now ships with two setup modes:
 
@@ -25,7 +25,7 @@ The package defaults to the Unified Databases source path at:
 
 `C:\Apache24\htdocs\Unified Databases`
 
-It also ships with built-in UI themes for the Filament page shell:
+It also ships with built-in UI themes:
 
 - `sunrise`
 - `atlantic`
@@ -106,6 +106,7 @@ return [
     'ui' => [
         'theme' => 'atlantic',
         'allow_theme_switcher' => true,
+        'donationware_url' => env('CALIXY_DONATIONWARE_URL', 'https://github.com/sponsors/YOUR_ACCOUNT'),
         'themes' => [
             'studio' => [
                 'label' => 'Studio',
@@ -134,15 +135,17 @@ Theme support is config-driven. Set a default theme:
 
 ```env
 UNIFIED_APPOINTMENTS_THEME=evergreen
+CALIXY_DONATIONWARE_URL=https://github.com/sponsors/YOUR_ACCOUNT
 ```
 
-Or add custom named themes in `config/unified-appointments.php`. The built-in Filament page can switch between configured themes with the `?theme=` query parameter when `allow_theme_switcher` is enabled.
+Or add custom named themes in `config/unified-appointments.php`.
 
 ## Laravel Components
 
 The package now includes:
 
 - auto-discovered service provider
+- `Calixy` facade alias
 - `UnifiedAppointments` facade alias
 - startup SQLite auto-bootstrap
 - explicit install command for Pro and alternate databases
@@ -151,23 +154,10 @@ The package now includes:
 - JSON controllers for services, availability, appointments, and waitlists
 - publishable views
 - `php artisan about` integration
-- Filament plugin scaffold
-
-## Filament Registration
-
-If your Laravel app uses Filament, register the plugin in your panel:
-
-```php
-use UnifiedAppointments\Filament\UnifiedAppointmentsPlugin;
-
-->plugins([
-    UnifiedAppointmentsPlugin::make(),
-])
-```
 
 ## Override Example
 
-If you want Unified Appointments to use Pro mode or a different database, override it explicitly:
+If you want Calixy to use Pro mode or a different database, override it explicitly:
 
 ```env
 UNIFIED_APPOINTMENTS_EDITION=pro
@@ -201,9 +191,9 @@ php artisan unified-appointments:install
 
 ```php
 use UnifiedAppointments\DTO\SlotSearchData;
-use UnifiedAppointments\Laravel\Facades\UnifiedAppointments;
+use UnifiedAppointments\Laravel\Facades\Calixy;
 
-$slots = UnifiedAppointments::findAvailableSlots(new SlotSearchData(
+$slots = Calixy::findAvailableSlots(new SlotSearchData(
     serviceId: 1,
     windowStart: new DateTimeImmutable('2026-04-27 00:00:00', new DateTimeZone('America/New_York')),
     windowEnd: new DateTimeImmutable('2026-04-27 23:59:59', new DateTimeZone('America/New_York')),
@@ -243,3 +233,4 @@ Run the included smoke test from the package root:
 ```bash
 php tests/smoke.php
 ```
+

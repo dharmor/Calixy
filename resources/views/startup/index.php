@@ -554,6 +554,10 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
             color: var(--ua-text);
         }
 
+        input[type="checkbox"] {
+            width: auto;
+        }
+
         textarea {
             min-height: 104px;
             resize: vertical;
@@ -636,6 +640,17 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
             border: 1px solid var(--ua-border);
             background: var(--ua-card-muted-background);
             font-weight: 700;
+        }
+
+        .inline-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.82rem 0.95rem;
+            border: 1px solid var(--ua-border);
+            border-radius: var(--ua-input-radius);
+            background: rgba(255, 255, 255, 0.88);
+            font-weight: 600;
         }
 
         .appointment-stack {
@@ -860,7 +875,7 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
                 <?php endif; ?>
                 <div>
                     <h1><?= $escape($companyName) ?></h1>
-                    <p class="subtitle">Generic booking operations, team scheduling, and calendar sync in one SQLite starter workspace.</p>
+                    <p class="subtitle">Generic booking operations, team scheduling, and calendar sync in one starter workspace.</p>
                 </div>
             </div>
         </div>
@@ -964,7 +979,7 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
 
             <?php if ($selectedService !== null): ?>
                 <div class="sidebar-block">
-                    <div class="sidebar-title">Booking Policy</div>
+                    <div class="sidebar-title">Service Snapshot</div>
                     <div class="detail-list">
                         <div class="detail-row">
                             <div class="detail-label">Duration</div>
@@ -983,6 +998,7 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
                             <div class="detail-value"><?= $selectedService['no_show_fee_amount'] === null ? 'Optional' : '$' . $escape(number_format((float) $selectedService['no_show_fee_amount'], 2)) ?></div>
                         </div>
                     </div>
+                    <a class="quick-link" href="<?= $escape($buildUrl(['page' => 'booking-policy'])) ?>">Edit Booking Policy</a>
                 </div>
             <?php endif; ?>
 
@@ -1007,7 +1023,7 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
                     </label>
                 </form>
                 <div class="muted"><?= $escape($theme['description'] ?? '') ?></div>
-                <div class="muted">SQLite file: <code>database/unified-appointments.sqlite</code></div>
+                <div class="muted">Theme and workflow settings are managed from this workspace.</div>
             </div>
 
             <div class="sidebar-block">
@@ -1289,10 +1305,13 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
                                 </label>
                                 <label>
                                     Reminder delivery
-                                    <input type="text" value="Client e-mail reminder" readonly>
+                                    <span class="inline-checkbox">
+                                        <input type="checkbox" name="send_email_reminder" value="1" checked>
+                                        Send reminder e-mail to client
+                                    </span>
                                 </label>
                             </div>
-                            <div class="muted">Leave the reminder blank to skip it. Reminder time uses <?= $escape($appTimezone) ?> and requires the client e-mail plus a configured mail server in Services.</div>
+                            <div class="muted">Set a reminder time only when delivery is enabled. Reminder time uses <?= $escape($appTimezone) ?> and requires the client e-mail plus a configured mail server in Services.</div>
                             <button type="submit">Book Appointment</button>
                         </form>
                     </article>
@@ -2180,6 +2199,96 @@ foreach (($theme['css_variables'] ?? []) as $variable => $value) {
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
+                    </article>
+                </div>
+            </section>
+        <?php elseif ($currentPage === 'booking-policy'): ?>
+            <section class="section-header">
+                <h2>Booking Policy</h2>
+                <div class="section-copy">Edit the client-facing policy text used by your booking team.</div>
+            </section>
+            <section class="content-grid">
+                <div>
+                    <article class="panel">
+                        <h3>Policy Editor</h3>
+                        <form method="post" class="list" style="margin-top: 1rem;">
+                            <?= $contextFields ?>
+                            <input type="hidden" name="action" value="save_booking_policy">
+                            <label>
+                                Policy summary
+                                <textarea name="booking_policy_summary" placeholder="Appointments can be rescheduled or cancelled up to 24 hours in advance." required><?= $escape($bookingPolicy['summary'] ?? '') ?></textarea>
+                            </label>
+                            <label>
+                                Cancellation policy
+                                <textarea name="booking_policy_cancellation" placeholder="Define cancellation timelines and related fees." required><?= $escape($bookingPolicy['cancellation'] ?? '') ?></textarea>
+                            </label>
+                            <label>
+                                No-show policy
+                                <textarea name="booking_policy_no_show" placeholder="Define no-show fees and outcomes." required><?= $escape($bookingPolicy['no_show'] ?? '') ?></textarea>
+                            </label>
+                            <button type="submit">Save Booking Policy</button>
+                        </form>
+                    </article>
+                </div>
+
+                <div>
+                    <article class="panel">
+                        <h3>Current Policy Snapshot</h3>
+                        <div class="detail-list" style="margin-top: 1rem;">
+                            <div class="detail-row">
+                                <div class="detail-label">Summary</div>
+                                <div class="detail-value"><?= $escape($bookingPolicy['summary'] ?? '') ?></div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Cancellation</div>
+                                <div class="detail-value"><?= $escape($bookingPolicy['cancellation'] ?? '') ?></div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">No-show</div>
+                                <div class="detail-value"><?= $escape($bookingPolicy['no_show'] ?? '') ?></div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        <?php elseif ($currentPage === 'about'): ?>
+            <section class="section-header">
+                <h2>About</h2>
+                <div class="section-copy">Application identity and runtime details.</div>
+            </section>
+            <section class="content-grid">
+                <div>
+                    <article class="panel">
+                        <h3>Brand</h3>
+                        <div style="margin-top: 1rem;">
+                            <?php if ($companyLogoUrl !== null && $companyLogoUrl !== ''): ?>
+                                <div class="logo-preview">
+                                    <img src="<?= $escape($companyLogoUrl) ?>" alt="<?= $escape($companyName) ?> logo">
+                                    <div>
+                                        <strong><?= $escape($companyName) ?></strong><br>
+                                        <span class="muted"><?= $escape($companyLogoUrl) ?></span>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="empty">No logo is currently configured. Add one from Services.</div>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                </div>
+
+                <div>
+                    <article class="panel">
+                        <h3>Application Version</h3>
+                        <div class="detail-list" style="margin-top: 1rem;">
+                            <div class="detail-row">
+                                <div class="detail-label">Version</div>
+                                <div class="detail-value"><?= $escape($applicationVersion) ?></div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Name</div>
+                                <div class="detail-value">Calixy</div>
+                            </div>
+                        </div>
                     </article>
                 </div>
             </section>
