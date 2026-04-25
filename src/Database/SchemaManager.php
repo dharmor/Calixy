@@ -633,8 +633,11 @@ final class SchemaManager
 
         return match ($driver) {
             'mysql' => $this->connector->first(
-                sprintf('SHOW COLUMNS FROM %s LIKE :column_name', $this->table($table)),
-                ['column_name' => $column],
+                'SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table_name AND column_name = :column_name',
+                [
+                    'table_name' => $tableName,
+                    'column_name' => $column,
+                ],
             ) !== null,
             'pgsql' => $this->connector->first(
                 'SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = :table_name AND column_name = :column_name',

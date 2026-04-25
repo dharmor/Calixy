@@ -29,7 +29,7 @@ final readonly class UnifiedAppointmentsConfig
     public static function fromArray(array $config): self
     {
         $database = isset($config['database']) ? self::resolveFilesystemPath((string) $config['database']) : null;
-        $driver = (string) ($config['driver'] ?? 'sqlite');
+        $driver = self::normalizeDriver((string) ($config['driver'] ?? 'sqlite'));
         $host = (string) ($config['host'] ?? '');
 
         if ($driver === 'sqlite' && $host === '' && $database !== null) {
@@ -69,7 +69,7 @@ final readonly class UnifiedAppointmentsConfig
         $startup = is_array($config['startup'] ?? null) ? $config['startup'] : [];
         $edition = strtolower((string) ($config['edition'] ?? 'startup'));
         $explicitConnection = self::stringOrNull($config['connection'] ?? null);
-        $explicitDriver = self::stringOrNull($config['driver'] ?? null);
+        $explicitDriver = self::normalizeNullableDriver($config['driver'] ?? null);
         $explicitHost = self::stringOrNull($config['host'] ?? null);
         $explicitUsername = self::stringOrNull($config['username'] ?? null);
         $explicitPassword = self::stringOrNull($config['password'] ?? null);
@@ -171,12 +171,7 @@ final readonly class UnifiedAppointmentsConfig
      */
     private static function mapLaravelDriver(string $driver): string
     {
-        return match ($driver) {
-            'pgsql' => 'postgres',
-            'sqlsrv' => 'mssql',
-            'mariadb' => 'mysql',
-            default => $driver,
-        };
+        return self::normalizeDriver($driver);
     }
 
     /**
@@ -217,6 +212,34 @@ final readonly class UnifiedAppointmentsConfig
         }
 
         return (bool) $value;
+    }
+
+    /**
+     * Normalize Nullable Driver.
+     */
+    private static function normalizeNullableDriver(mixed $value): ?string
+    {
+        $driver = self::stringOrNull($value);
+
+        if ($driver === null) {
+            return null;
+        }
+
+        return self::normalizeDriver($driver);
+    }
+
+    /**
+     * Normalize Driver.
+     */
+    private static function normalizeDriver(string $driver): string
+    {
+        return match (strtolower(trim($driver))) {
+            '', 'sqlite' => 'sqlite',
+            'mysql', 'mariadb' => 'mysql',
+            'pgsql', 'postgres', 'postgresql', 'postgesql' => 'postgres',
+            'sqlsrv', 'sqlserver', 'mssql' => 'mssql',
+            default => strtolower(trim($driver)),
+        };
     }
 
     /**
