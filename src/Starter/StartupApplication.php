@@ -64,6 +64,8 @@ final class StartupApplication
 
     private ?string $companyLogoDisplayUrl = null;
 
+    private string $applicationName = 'Calixy';
+
     private string $applicationVersion = 'unknown';
 
     private ThemeManager $themeManager;
@@ -166,23 +168,71 @@ final class StartupApplication
     {
         $this->config = UnifiedAppointmentsConfig::fromLaravelConfig($this->rawConfig, []);
 
-        if (!$this->config->shouldAutoBootstrap()) {
-            throw new RuntimeException(
-                'The starter page requires startup auto-bootstrap mode. Enable startup mode or run the install workflow.',
-            );
-        }
-
         if (!is_dir($this->config->databaseLibraryPath)) {
             throw new RuntimeException(sprintf(
                 'Unified Databases library not found at "%s".',
                 $this->config->databaseLibraryPath,
             ));
         }
+        $this->prepareStartupDatabase();
 
+        $connector = new UnifiedDatabaseConnector($this->config);
+        $this->schema = new SchemaManager($connector, $this->config);
+        $this->schema->install();
+
+        $this->repository = new AppointmentRepository($connector, $this->config);
+        $this->scheduler = new AppointmentScheduler($this->repository, $this->schema);
+        $this->emailDispatcher = new SmtpEmailDispatcher();
+    }
+
+    /**
+     * Prepare Startup Database.
+     */
+    private function prepareStartupDatabase(): void
+    {
+        $driver = $this->config->driver;
+
+        if (!in_array($driver, ['sqlite', 'mysql', 'postgres', 'mssql'], true)) {
+            throw new RuntimeException(sprintf(
+                'Unsupported startup database driver "%s". Use SQLite, MySQL, PostgreSQL, or MSSQL.',
+                $driver,
+            ));
+        }
+
+        if ($driver === 'sqlite') {
+            $this->prepareSqliteStartupDatabase();
+
+            return;
+        }
+
+        if ($this->config->host === '') {
+            throw new RuntimeException(sprintf(
+                '%s host is not configured.',
+                $this->startupDriverLabel($driver),
+            ));
+        }
+
+        if ($this->config->database === null || $this->config->database === '') {
+            throw new RuntimeException(sprintf(
+                '%s database name is not configured.',
+                $this->startupDriverLabel($driver),
+            ));
+        }
+    }
+
+    /**
+     * Prepare Sqlite Startup Database.
+     */
+    private function prepareSqliteStartupDatabase(): void
+    {
         $databasePath = $this->config->database ?: $this->config->host;
 
         if ($databasePath === null || $databasePath === '') {
-            throw new RuntimeException('Startup database path is not configured.');
+            throw new RuntimeException('Startup SQLite database path is not configured.');
+        }
+
+        if ($databasePath === ':memory:' || str_starts_with($databasePath, 'file:')) {
+            return;
         }
 
         $directory = dirname($databasePath);
@@ -194,14 +244,19 @@ final class StartupApplication
         if (!is_file($databasePath)) {
             touch($databasePath);
         }
+    }
 
-        $connector = new UnifiedDatabaseConnector($this->config);
-        $this->schema = new SchemaManager($connector, $this->config);
-        $this->schema->install();
-
-        $this->repository = new AppointmentRepository($connector, $this->config);
-        $this->scheduler = new AppointmentScheduler($this->repository, $this->schema);
-        $this->emailDispatcher = new SmtpEmailDispatcher();
+    /**
+     * Startup Driver Label.
+     */
+    private function startupDriverLabel(string $driver): string
+    {
+        return match ($driver) {
+            'mysql' => 'MySQL',
+            'postgres' => 'PostgreSQL',
+            'mssql' => 'MSSQL',
+            default => 'SQLite',
+        };
     }
 
     /**
@@ -237,9 +292,13 @@ final class StartupApplication
         $configuredApplicationName = $this->stringOrNull($uiConfig['application_name'] ?? null);
         $storedCompanyName = $this->stringOrNull($this->repository->getSystemConfig('company_name'));
 
+        $this->applicationName = AboutMetadataResolver::resolveName(
+            $configuredApplicationName,
+            'Calixy',
+        );
         $this->companyName = AboutMetadataResolver::resolveName(
             $storedCompanyName,
-            $configuredApplicationName,
+            $this->applicationName,
         );
         $this->companyLogoUrl = $this->stringOrNull($this->repository->getSystemConfig('company_logo_url'));
         $this->companyLogoDisplayUrl = $this->resolveCompanyLogoDisplayUrl($this->companyLogoUrl);
@@ -501,9 +560,9 @@ final class StartupApplication
             };
 
             $this->processDueEmailReminders();
-            $this->redirectWithFlash('success', $this->successMessageFor($action));
+            $this->redirectWithFlash('success', $this->successMessageFor($action), $action);
         } catch (Throwable $exception) {
-            $this->redirectWithFlash('error', $exception->getMessage());
+            $this->redirectWithFlash('error', $exception->getMessage(), $action);
         }
     }
 
@@ -1025,6 +1084,8 @@ final class StartupApplication
             'availabilityExceptions' => $availabilityExceptions,
             'availabilityRules' => $availabilityRules,
             'applicationVersion' => $this->applicationVersion,
+            'applicationName' => $this->applicationName,
+            'databaseDriverLabel' => $this->startupDriverLabel($this->config->driver),
             'bookingPolicy' => $bookingPolicy,
             'calendarConnections' => $calendarConnections,
             'calendarConnectionMap' => $connectionMap,
@@ -1770,6 +1831,7 @@ HTML;
         return [
             'type' => (string) ($flash['type'] ?? 'info'),
             'message' => (string) ($flash['message'] ?? ''),
+            'action' => (string) ($flash['action'] ?? ''),
         ];
     }
 
@@ -1798,11 +1860,12 @@ HTML;
     /**
      * Redirect With Flash.
      */
-    private function redirectWithFlash(string $type, string $message): never
+    private function redirectWithFlash(string $type, string $message, ?string $action = null): never
     {
         $_SESSION['unified_appointments_flash'] = [
             'type' => $type,
             'message' => $message,
+            'action' => $action,
         ];
 
         $query = array_filter([
@@ -1830,7 +1893,7 @@ HTML;
             'create_service' => 'Service saved.',
             'add_rule' => 'Weekly availability added.',
             'add_exception' => 'Blackout added.',
-            'book_appointment' => 'Appointment booked without overlap.',
+            'book_appointment' => 'Appointment entered.',
             'reschedule_appointment' => 'Appointment rescheduled.',
             'cancel_appointment' => 'Appointment cancelled.',
             'add_waitlist' => 'Waitlist entry saved.',
