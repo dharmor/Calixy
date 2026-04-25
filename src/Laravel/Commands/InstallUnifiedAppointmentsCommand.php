@@ -5,14 +5,20 @@ namespace UnifiedAppointments\Laravel\Commands;
 use UnifiedAppointments\Config\UnifiedAppointmentsConfig;
 use UnifiedAppointments\Services\AppointmentScheduler;
 
+/**
+ * InstallUnifiedAppointmentsCommand.
+ */
 class InstallUnifiedAppointmentsCommand extends \Illuminate\Console\Command
 {
     protected $signature = 'unified-appointments:install
         {--publish-config : Publish the package configuration file}
         {--publish-views : Publish the package views for customization}';
 
-    protected $description = 'Explicitly create Calixy tables for Pro or non-SQLite deployments.';
+    protected $description = 'Explicitly create Calixy tables deployments.';
 
+    /**
+     * Handle.
+     */
     public function handle(AppointmentScheduler $scheduler, UnifiedAppointmentsConfig $config): int
     {
         if ($this->option('publish-config')) {
@@ -59,6 +65,9 @@ class InstallUnifiedAppointmentsCommand extends \Illuminate\Console\Command
         return self::SUCCESS;
     }
 
+    /**
+     * Prepare Sqlite Database If Needed.
+     */
     private function prepareSqliteDatabaseIfNeeded(UnifiedAppointmentsConfig $config): void
     {
         if ($config->driver !== 'sqlite') {
@@ -82,4 +91,5 @@ class InstallUnifiedAppointmentsCommand extends \Illuminate\Console\Command
         }
     }
 }
+
 

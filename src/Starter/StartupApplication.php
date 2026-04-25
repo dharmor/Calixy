@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace UnifiedAppointments\Starter;
 
-use Composer\InstalledVersions;
 use DateTimeImmutable;
 use DateTimeZone;
 use RuntimeException;
@@ -21,8 +20,13 @@ use UnifiedAppointments\DTO\WaitlistEntryData;
 use UnifiedAppointments\Notifications\SmtpEmailDispatcher;
 use UnifiedAppointments\Repositories\AppointmentRepository;
 use UnifiedAppointments\Services\AppointmentScheduler;
+use UnifiedAppointments\Support\AboutMetadataResolver;
+use UnifiedAppointments\Support\LogoSourceResolver;
 use UnifiedAppointments\Themes\ThemeManager;
 
+/**
+ * StartupApplication.
+ */
 final class StartupApplication
 {
     private const DEFAULT_OWNER_TYPE = 'staff';
@@ -58,6 +62,8 @@ final class StartupApplication
 
     private ?string $companyLogoUrl = null;
 
+    private ?string $companyLogoDisplayUrl = null;
+
     private string $applicationVersion = 'unknown';
 
     private ThemeManager $themeManager;
@@ -72,10 +78,16 @@ final class StartupApplication
 
     private SchemaManager $schema;
 
+    /**
+     * Create a new instance.
+     */
     public function __construct(private readonly string $packageRoot)
     {
     }
 
+    /**
+     * Run.
+     */
     public function run(): void
     {
         $this->startSession();
@@ -102,9 +114,31 @@ final class StartupApplication
         }
     }
 
+    /**
+     * Load Config.
+     */
     private function loadConfig(): void
     {
-        $configPath = $this->packageRoot . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'unified-appointments.php';
+        $configPaths = [
+            $this->packageRoot . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'unified-appointments.standalone.php',
+            $this->packageRoot . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'unified-appointments.php',
+        ];
+        $configPath = null;
+
+        foreach ($configPaths as $candidatePath) {
+            if (!is_file($candidatePath)) {
+                continue;
+            }
+
+            $configPath = $candidatePath;
+
+            break;
+        }
+
+        if ($configPath === null) {
+            throw new RuntimeException('The startup configuration file is missing.');
+        }
+
         $config = require $configPath;
 
         if (!is_array($config)) {
@@ -114,6 +148,9 @@ final class StartupApplication
         $this->rawConfig = $config;
     }
 
+    /**
+     * Boot Theme.
+     */
     private function bootTheme(): void
     {
         $this->themeManager = new ThemeManager($this->rawConfig);
@@ -122,6 +159,9 @@ final class StartupApplication
         $this->themeKey = (string) ($this->theme['key'] ?? $this->themeManager->defaultThemeKey());
     }
 
+    /**
+     * Boot Runtime.
+     */
     private function bootRuntime(): void
     {
         $this->config = UnifiedAppointmentsConfig::fromLaravelConfig($this->rawConfig, []);
@@ -164,6 +204,9 @@ final class StartupApplication
         $this->emailDispatcher = new SmtpEmailDispatcher();
     }
 
+    /**
+     * Seed Starter Reference Data.
+     */
     private function seedStarterReferenceData(): void
     {
         $this->seedTimezoneCatalog();
@@ -173,19 +216,64 @@ final class StartupApplication
         $this->seedNotificationSettings();
     }
 
+    /**
+     * Load Runtime Timezone.
+     */
     private function loadRuntimeTimezone(): void
     {
         $timezone = $this->repository->getSystemConfig('app_timezone') ?? $this->config->appTimezone;
         $this->appTimezone = $this->validatedTimezone($timezone);
     }
 
+    /**
+     * Load runtime branding with safe defaults for app name and logo.
+     *
+     * @return void
+     */
     private function loadRuntimeBranding(): void
     {
-        $this->companyName = $this->repository->getSystemConfig('company_name') ?? 'Your Company';
+        /** @var array<string, mixed> $uiConfig */
+        $uiConfig = is_array($this->rawConfig['ui'] ?? null) ? $this->rawConfig['ui'] : [];
+        $configuredApplicationName = $this->stringOrNull($uiConfig['application_name'] ?? null);
+        $storedCompanyName = $this->stringOrNull($this->repository->getSystemConfig('company_name'));
+
+        $this->companyName = AboutMetadataResolver::resolveName(
+            $storedCompanyName,
+            $configuredApplicationName,
+        );
         $this->companyLogoUrl = $this->stringOrNull($this->repository->getSystemConfig('company_logo_url'));
+        $this->companyLogoDisplayUrl = $this->resolveCompanyLogoDisplayUrl($this->companyLogoUrl);
         $this->applicationVersion = $this->resolveApplicationVersion();
     }
 
+    /**
+     * Build a data URI for the default startup logo from bundled image assets.
+     *
+     * @return string|null Base64 data URI when an image is available, otherwise null.
+     */
+    private function defaultLogoDataUri(): ?string
+    {
+        $imagesPath = $this->packageRoot . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'images';
+
+        return LogoSourceResolver::firstAvailableDataUri([
+            [$imagesPath . DIRECTORY_SEPARATOR . 'logo2.jpg', 'image/jpeg'],
+            [$imagesPath . DIRECTORY_SEPARATOR . 'logo2.jpeg', 'image/jpeg'],
+            [$imagesPath . DIRECTORY_SEPARATOR . 'logo2.png', 'image/png'],
+        ]);
+    }
+
+    private function resolveCompanyLogoDisplayUrl(?string $companyLogoUrl): ?string
+    {
+        return LogoSourceResolver::resolve($companyLogoUrl, [
+            $this->packageRoot . DIRECTORY_SEPARATOR . 'public',
+            $this->packageRoot,
+            $this->packageRoot . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'images',
+        ]) ?? $this->defaultLogoDataUri();
+    }
+
+    /**
+     * Seed Timezone Catalog.
+     */
     private function seedTimezoneCatalog(): void
     {
         if ($this->repository->timezoneCount() > 0) {
@@ -202,6 +290,9 @@ final class StartupApplication
         $this->repository->replaceTimezones($rows);
     }
 
+    /**
+     * Seed System Config.
+     */
     private function seedSystemConfig(): void
     {
         if (!$this->repository->hasSystemConfig('app_timezone')) {
@@ -223,6 +314,14 @@ final class StartupApplication
         if (!$this->repository->hasSystemConfig('company_logo_url')) {
             $this->repository->upsertSystemConfig(
                 'company_logo_url',
+                null,
+                'system',
+            );
+        }
+
+        if (!$this->repository->hasSystemConfig('application_version')) {
+            $this->repository->upsertSystemConfig(
+                'application_version',
                 null,
                 'system',
             );
@@ -258,6 +357,9 @@ final class StartupApplication
         }
     }
 
+    /**
+     * Seed Locations.
+     */
     private function seedLocations(): void
     {
         if ($this->repository->listLocations() !== []) {
@@ -279,6 +381,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Seed Team Members.
+     */
     private function seedTeamMembers(): void
     {
         if ($this->repository->listTeamMembers() !== []) {
@@ -298,6 +403,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Seed Notification Settings.
+     */
     private function seedNotificationSettings(): void
     {
         $defaults = [
@@ -326,6 +434,9 @@ final class StartupApplication
         }
     }
 
+    /**
+     * Seed Defaults.
+     */
     private function seedDefaults(): void
     {
         if ($this->repository->listServices() === []) {
@@ -360,6 +471,9 @@ final class StartupApplication
         }
     }
 
+    /**
+     * Handle Post.
+     */
     private function handlePost(): void
     {
         $action = (string) ($_POST['action'] ?? '');
@@ -393,6 +507,9 @@ final class StartupApplication
         }
     }
 
+    /**
+     * Create Service.
+     */
     private function createService(): void
     {
         $name = trim((string) ($_POST['service_name'] ?? ''));
@@ -419,6 +536,9 @@ final class StartupApplication
         ));
     }
 
+    /**
+     * Add Availability Rule.
+     */
     private function addAvailabilityRule(): void
     {
         $owner = $this->selectedTeamOwner($_POST['rule_owner_id'] ?? self::DEFAULT_OWNER_ID);
@@ -436,6 +556,9 @@ final class StartupApplication
         ));
     }
 
+    /**
+     * Add Availability Exception.
+     */
     private function addAvailabilityException(): void
     {
         $owner = $this->selectedTeamOwner($_POST['exception_owner_id'] ?? self::DEFAULT_OWNER_ID);
@@ -453,6 +576,9 @@ final class StartupApplication
         ));
     }
 
+    /**
+     * Book Appointment.
+     */
     private function bookAppointment(): void
     {
         $owner = $this->parseOwnerToken($this->requiredString($_POST['owner'] ?? null, 'Owner is required.'));
@@ -488,6 +614,9 @@ final class StartupApplication
         }
     }
 
+    /**
+     * Reschedule Appointment.
+     */
     private function rescheduleAppointment(): void
     {
         $appointmentId = $this->requiredString($_POST['appointment_id'] ?? null, 'Appointment is required.');
@@ -508,6 +637,9 @@ final class StartupApplication
         );
     }
 
+    /**
+     * Cancel Appointment.
+     */
     private function cancelAppointment(): void
     {
         $appointmentId = $this->requiredString($_POST['appointment_id'] ?? null, 'Appointment is required.');
@@ -533,6 +665,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Add Waitlist Entry.
+     */
     private function addWaitlistEntry(): void
     {
         $owner = $this->parseOwnerToken($this->requiredString($_POST['owner'] ?? null, 'Owner is required.'));
@@ -553,29 +688,34 @@ final class StartupApplication
         ));
     }
 
+    /**
+     * Save System Config.
+     */
     private function saveSystemConfig(): void
     {
         $timezone = $this->validatedTimezone($this->requiredString($_POST['app_timezone'] ?? null, 'System timezone is required.'));
         $companyName = $this->requiredString($_POST['company_name'] ?? null, 'Company name is required.');
-        $companyLogoUrl = $this->stringOrNull($_POST['company_logo_url'] ?? null);
-        $uploadedLogoUrl = $this->storeCompanyLogoUpload($_FILES['company_logo_file'] ?? null, $companyName);
-
-        if ($uploadedLogoUrl !== null) {
-            $companyLogoUrl = $uploadedLogoUrl;
-        }
+        $applicationVersion = $this->stringOrNull($_POST['application_version'] ?? null);
+        $companyLogoUrl = $this->stringOrNull($this->repository->getSystemConfig('company_logo_url'));
 
         $this->repository->upsertSystemConfig('app_timezone', $timezone, 'system');
         $this->repository->upsertSystemConfig('company_name', $companyName, 'system');
+        $this->repository->upsertSystemConfig('application_version', $applicationVersion, 'system');
         $this->repository->upsertSystemConfig('company_logo_url', $companyLogoUrl, 'system');
         $this->appTimezone = $timezone;
         $this->companyName = $companyName;
         $this->companyLogoUrl = $companyLogoUrl;
+        $this->companyLogoDisplayUrl = $this->resolveCompanyLogoDisplayUrl($companyLogoUrl);
+        $this->applicationVersion = $this->resolveApplicationVersion();
 
         if (($this->repository->getSystemConfig('mail_from_name') ?? null) === 'Your Company') {
             $this->repository->upsertSystemConfig('mail_from_name', $companyName, 'mail_server');
         }
     }
 
+    /**
+     * Save Email Server.
+     */
     private function saveEmailServer(): void
     {
         $existingConfig = $this->mailServerConfig();
@@ -620,6 +760,9 @@ final class StartupApplication
         $this->repository->upsertSystemConfig('mail_reply_to', $replyTo, 'mail_server');
     }
 
+    /**
+     * Create Location.
+     */
     private function createLocation(): void
     {
         $locationKey = $this->requiredString($_POST['location_key'] ?? null, 'Location key is required.');
@@ -644,6 +787,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Update Location.
+     */
     private function updateLocation(): void
     {
         $locationKey = $this->requiredString($_POST['existing_location_key'] ?? null, 'Location key is required.');
@@ -667,6 +813,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Create Team Member.
+     */
     private function createTeamMember(): void
     {
         $memberKey = $this->requiredString($_POST['member_key'] ?? null, 'Team key is required.');
@@ -690,6 +839,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Update Team Member.
+     */
     private function updateTeamMember(): void
     {
         $memberKey = $this->requiredString($_POST['existing_member_key'] ?? null, 'Team key is required.');
@@ -712,6 +864,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Save Notification Setting.
+     */
     private function saveNotificationSetting(): void
     {
         $channel = strtolower($this->requiredString($_POST['notification_channel'] ?? null, 'Notification channel is required.'));
@@ -725,6 +880,9 @@ final class StartupApplication
         ]);
     }
 
+    /**
+     * Save Booking Policy.
+     */
     private function saveBookingPolicy(): void
     {
         $this->repository->upsertSystemConfig(
@@ -744,6 +902,9 @@ final class StartupApplication
         );
     }
 
+    /**
+     * Save Reminder Schedule.
+     */
     private function saveReminderSchedule(): void
     {
         $appointmentId = $this->requiredString($_POST['appointment_id'] ?? null, 'Appointment is required.');
@@ -760,6 +921,9 @@ final class StartupApplication
         );
     }
 
+    /**
+     * Save Calendar Connection.
+     */
     private function saveCalendarConnection(): void
     {
         $provider = strtolower($this->requiredString($_POST['provider'] ?? null, 'Provider is required.'));
@@ -865,6 +1029,7 @@ final class StartupApplication
             'calendarConnections' => $calendarConnections,
             'calendarConnectionMap' => $connectionMap,
             'calendarWeeks' => $calendarWeeks,
+            'companyLogoDisplayUrl' => $this->companyLogoDisplayUrl,
             'companyLogoUrl' => $this->companyLogoUrl,
             'companyName' => $this->companyName,
             'context' => $context,
@@ -917,6 +1082,9 @@ final class StartupApplication
         require $template;
     }
 
+    /**
+     * Render Error.
+     */
     private function renderError(Throwable $exception): void
     {
         http_response_code(500);
@@ -1245,6 +1413,9 @@ HTML;
         ));
     }
 
+    /**
+     * Selected Date.
+     */
     private function selectedDate(): string
     {
         $requested = $this->stringOrNull($_REQUEST['date'] ?? null);
@@ -1256,6 +1427,9 @@ HTML;
         return $this->defaultDate()->format('Y-m-d');
     }
 
+    /**
+     * Selected Month.
+     */
     private function selectedMonth(string $selectedDate): string
     {
         $requested = $this->stringOrNull($_REQUEST['month'] ?? null);
@@ -1267,6 +1441,9 @@ HTML;
         return substr($selectedDate, 0, 7);
     }
 
+    /**
+     * Selected Page.
+     */
     private function selectedPage(): string
     {
         $requested = strtolower((string) ($this->stringOrNull($_REQUEST['page'] ?? null) ?? 'dashboard'));
@@ -1618,6 +1795,9 @@ HTML;
         return implode(PHP_EOL, $fields);
     }
 
+    /**
+     * Redirect With Flash.
+     */
     private function redirectWithFlash(string $type, string $message): never
     {
         $_SESSION['unified_appointments_flash'] = [
@@ -1641,6 +1821,9 @@ HTML;
         exit;
     }
 
+    /**
+     * Success Message For.
+     */
     private function successMessageFor(string $action): string
     {
         return match ($action) {
@@ -1678,38 +1861,25 @@ HTML;
         ];
     }
 
+    /**
+     * Resolve Application Version.
+     */
     private function resolveApplicationVersion(): string
     {
-        if (class_exists(InstalledVersions::class)) {
-            try {
-                $root = InstalledVersions::getRootPackage();
-                $prettyVersion = $root['pretty_version'] ?? null;
+        $storedVersion = $this->stringOrNull($this->repository->getSystemConfig('application_version'));
 
-                if (is_string($prettyVersion) && $prettyVersion !== '') {
-                    return $prettyVersion;
-                }
-            } catch (Throwable) {
-                // Fallback to composer.json when Composer metadata is unavailable.
-            }
+        if ($storedVersion !== null) {
+            return $storedVersion;
         }
 
-        $composerPath = $this->packageRoot . DIRECTORY_SEPARATOR . 'composer.json';
+        /** @var array<string, mixed> $uiConfig */
+        $uiConfig = is_array($this->rawConfig['ui'] ?? null) ? $this->rawConfig['ui'] : [];
 
-        if (!is_file($composerPath)) {
-            return 'unknown';
-        }
-
-        $decoded = json_decode((string) file_get_contents($composerPath), true);
-
-        if (is_array($decoded)) {
-            $version = $decoded['version'] ?? null;
-
-            if (is_string($version) && $version !== '') {
-                return $version;
-            }
-        }
-
-        return 'unknown';
+        return AboutMetadataResolver::resolveVersion(
+            $this->stringOrNull($uiConfig['version'] ?? null),
+            $this->packageRoot,
+            'calixy/unified-appointments',
+        );
     }
 
     /**
@@ -1745,6 +1915,9 @@ HTML;
         $this->persistReminderSchedule($appointment['id'], $reminderSendAtUtc);
     }
 
+    /**
+     * Persist Reminder Schedule.
+     */
     private function persistReminderSchedule(int|string $appointmentId, ?string $reminderSendAtUtc): void
     {
         $this->repository->updateAppointment($appointmentId, [
@@ -1775,6 +1948,9 @@ HTML;
         }
     }
 
+    /**
+     * Validated Reminder Schedule.
+     */
     private function validatedReminderSchedule(
         mixed $reminderInput,
         DateTimeImmutable $appointmentStartUtc,
@@ -1798,6 +1974,9 @@ HTML;
         return $reminderUtc->format('Y-m-d H:i:s');
     }
 
+    /**
+     * Process Due Email Reminders.
+     */
     private function processDueEmailReminders(): void
     {
         $emailSetting = $this->repository->findNotificationSetting('email');
@@ -1816,6 +1995,9 @@ HTML;
         }
     }
 
+    /**
+     * Process Reminder For Appointment.
+     */
     private function processReminderForAppointment(array $appointment): void
     {
         $service = $this->mustFindService($appointment['service_id']);
@@ -1944,6 +2126,9 @@ HTML;
             ->format('D M j, g:i A T');
     }
 
+    /**
+     * Payload To Json.
+     */
     private function payloadToJson(array $payload): ?string
     {
         $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -1962,6 +2147,9 @@ HTML;
         return $config;
     }
 
+    /**
+     * Truncate Text.
+     */
     private function truncateText(string $value, int $limit): string
     {
         if (strlen($value) <= $limit) {
@@ -1971,6 +2159,9 @@ HTML;
         return substr($value, 0, $limit - 3) . '...';
     }
 
+    /**
+     * Owner Type.
+     */
     private function ownerType(mixed $value): string
     {
         $ownerType = strtolower($this->requiredString($value, 'Owner type is required.'));
@@ -2020,11 +2211,17 @@ HTML;
         ];
     }
 
+    /**
+     * Owner Token.
+     */
     private function ownerToken(string $ownerType, string $ownerId): string
     {
         return $ownerType . ':' . $ownerId;
     }
 
+    /**
+     * Store Company Logo Upload.
+     */
     private function storeCompanyLogoUpload(mixed $file, string $companyName): ?string
     {
         if (!is_array($file) || !isset($file['error'])) {
@@ -2088,6 +2285,9 @@ HTML;
         return 'uploads/branding/' . $filename;
     }
 
+    /**
+     * Safe Slug.
+     */
     private function safeSlug(string $value): string
     {
         $value = strtolower(trim($value));
@@ -2097,6 +2297,9 @@ HTML;
         return $value === '' ? 'company-logo' : $value;
     }
 
+    /**
+     * Required String.
+     */
     private function requiredString(mixed $value, string $message): string
     {
         $string = $this->stringOrNull($value);
@@ -2108,6 +2311,9 @@ HTML;
         return $string;
     }
 
+    /**
+     * Required Email.
+     */
     private function requiredEmail(mixed $value, string $message): string
     {
         $email = $this->stringOrNull($value);
@@ -2119,6 +2325,9 @@ HTML;
         return $email;
     }
 
+    /**
+     * Required Time.
+     */
     private function requiredTime(mixed $value): string
     {
         $time = $this->requiredString($value, 'A time value is required.');
@@ -2130,6 +2339,9 @@ HTML;
         return $time;
     }
 
+    /**
+     * Int Value.
+     */
     private function intValue(mixed $value, int $minimum): int
     {
         if (!is_numeric($value)) {
@@ -2145,6 +2357,9 @@ HTML;
         return $int;
     }
 
+    /**
+     * Float Or Null.
+     */
     private function floatOrNull(mixed $value): ?float
     {
         $string = $this->stringOrNull($value);
@@ -2160,6 +2375,9 @@ HTML;
         return (float) $string;
     }
 
+    /**
+     * String Or Null.
+     */
     private function stringOrNull(mixed $value): ?string
     {
         if (!is_string($value) && !is_numeric($value)) {
@@ -2171,6 +2389,9 @@ HTML;
         return $string === '' ? null : $string;
     }
 
+    /**
+     * Date Time Value.
+     */
     private function dateTimeValue(mixed $value): DateTimeImmutable
     {
         $string = $this->requiredString($value, 'A date and time is required.');
@@ -2178,6 +2399,9 @@ HTML;
         return new DateTimeImmutable($string, $this->appTimezone());
     }
 
+    /**
+     * Date And Time Value.
+     */
     private function dateAndTimeValue(mixed $date, mixed $time): DateTimeImmutable
     {
         $dateString = $this->requiredString($date, 'A booking date is required.');
@@ -2190,6 +2414,9 @@ HTML;
         return new DateTimeImmutable($dateString . ' ' . $timeString, $this->appTimezone());
     }
 
+    /**
+     * Nullable Date Time Value.
+     */
     private function nullableDateTimeValue(mixed $value): ?string
     {
         $string = $this->stringOrNull($value);
@@ -2203,16 +2430,25 @@ HTML;
             ->format('Y-m-d H:i:s');
     }
 
+    /**
+     * Now Utc.
+     */
     private function nowUtc(): string
     {
         return gmdate('Y-m-d H:i:s');
     }
 
+    /**
+     * App Timezone.
+     */
     private function appTimezone(): DateTimeZone
     {
         return new DateTimeZone($this->appTimezone);
     }
 
+    /**
+     * Default Date.
+     */
     private function defaultDate(): DateTimeImmutable
     {
         $date = new DateTimeImmutable('today', $this->appTimezone());
@@ -2240,6 +2476,9 @@ HTML;
         ];
     }
 
+    /**
+     * Css Variables.
+     */
     private function cssVariables(array $variables): string
     {
         $lines = [];
@@ -2251,6 +2490,9 @@ HTML;
         return implode(PHP_EOL . '            ', $lines);
     }
 
+    /**
+     * Start Session.
+     */
     private function startSession(): void
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
@@ -2275,6 +2517,9 @@ HTML;
         return $service;
     }
 
+    /**
+     * Validated Timezone.
+     */
     private function validatedTimezone(string $timezone): string
     {
         $timezone = trim($timezone);
@@ -2288,6 +2533,9 @@ HTML;
         return $timezone;
     }
 
+    /**
+     * Nullable Location Key.
+     */
     private function nullableLocationKey(mixed $value): ?string
     {
         $locationKey = $this->stringOrNull($value);
@@ -2303,6 +2551,9 @@ HTML;
         return $locationKey;
     }
 
+    /**
+     * Default Location Key.
+     */
     private function defaultLocationKey(): string
     {
         $locations = $this->repository->listLocations();
@@ -2310,6 +2561,9 @@ HTML;
         return (string) ($locations[0]['location_key'] ?? self::DEFAULT_LOCATION_KEY);
     }
 
+    /**
+     * Default Owner Id.
+     */
     private function defaultOwnerId(): string
     {
         $teamMembers = $this->repository->listTeamMembers();
@@ -2317,4 +2571,5 @@ HTML;
         return (string) ($teamMembers[0]['member_key'] ?? self::DEFAULT_OWNER_ID);
     }
 }
+
 

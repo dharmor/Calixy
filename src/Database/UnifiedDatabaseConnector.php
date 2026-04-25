@@ -7,14 +7,23 @@ use PDOStatement;
 use RuntimeException;
 use UnifiedAppointments\Config\UnifiedAppointmentsConfig;
 
+/**
+ * UnifiedDatabaseConnector.
+ */
 final class UnifiedDatabaseConnector
 {
     private ?object $connection = null;
 
+    /**
+     * Create a new instance.
+     */
     public function __construct(private readonly UnifiedAppointmentsConfig $config)
     {
     }
 
+    /**
+     * Connection.
+     */
     public function connection(): object
     {
         if ($this->connection !== null) {
@@ -36,6 +45,9 @@ final class UnifiedDatabaseConnector
         return $this->connection = $database;
     }
 
+    /**
+     * Pdo.
+     */
     public function pdo(): PDO
     {
         $pdo = $this->connection()->getConnection();
@@ -47,11 +59,17 @@ final class UnifiedDatabaseConnector
         return $pdo;
     }
 
+    /**
+     * Driver Name.
+     */
     public function driverName(): string
     {
         return $this->pdo()->getAttribute(PDO::ATTR_DRIVER_NAME);
     }
 
+    /**
+     * Quote Identifier.
+     */
     public function quoteIdentifier(string $identifier): string
     {
         return match ($this->driverName()) {
@@ -138,6 +156,9 @@ final class UnifiedDatabaseConnector
         return $statement;
     }
 
+    /**
+     * Load Unified Database Library.
+     */
     private function loadUnifiedDatabaseLibrary(): void
     {
         $interfacePath = $this->config->databaseLibraryPath . DIRECTORY_SEPARATOR . 'DatabaseInterface.php';
@@ -154,3 +175,4 @@ final class UnifiedDatabaseConnector
         require_once $factoryPath;
     }
 }
+

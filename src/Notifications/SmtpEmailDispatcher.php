@@ -6,6 +6,9 @@ namespace UnifiedAppointments\Notifications;
 
 use RuntimeException;
 
+/**
+ * SmtpEmailDispatcher.
+ */
 final class SmtpEmailDispatcher
 {
     private const SOCKET_TIMEOUT_SECONDS = 15;
@@ -180,6 +183,9 @@ final class SmtpEmailDispatcher
         }
     }
 
+    /**
+     * Message Payload.
+     */
     private function messagePayload(
         string $recipient,
         string $subject,
@@ -205,6 +211,9 @@ final class SmtpEmailDispatcher
         return implode("\r\n", $headers) . "\r\n\r\n" . $this->dotStuff($this->normalizeBody($textBody));
     }
 
+    /**
+     * Address Header.
+     */
     private function addressHeader(string $email, ?string $name = null): string
     {
         if ($name === null) {
@@ -214,6 +223,9 @@ final class SmtpEmailDispatcher
         return $this->mimeHeader($name) . ' <' . $email . '>';
     }
 
+    /**
+     * Mime Header.
+     */
     private function mimeHeader(string $value): string
     {
         $sanitized = trim(str_replace(["\r", "\n"], ' ', $value));
@@ -221,6 +233,9 @@ final class SmtpEmailDispatcher
         return '=?UTF-8?B?' . base64_encode($sanitized) . '?=';
     }
 
+    /**
+     * Normalize Body.
+     */
     private function normalizeBody(string $value): string
     {
         $normalized = str_replace(["\r\n", "\r"], "\n", trim($value));
@@ -228,11 +243,17 @@ final class SmtpEmailDispatcher
         return str_replace("\n", "\r\n", $normalized);
     }
 
+    /**
+     * Dot Stuff.
+     */
     private function dotStuff(string $value): string
     {
         return preg_replace('/(^|\r\n)\./', '$1..', $value) ?? $value;
     }
 
+    /**
+     * Hello Domain.
+     */
     private function helloDomain(): string
     {
         $hostname = gethostname();
@@ -247,6 +268,9 @@ final class SmtpEmailDispatcher
         return trim($hostname, '-.') !== '' ? trim($hostname, '-.') : 'localhost';
     }
 
+    /**
+     * Tls Crypto Method.
+     */
     private function tlsCryptoMethod(): int
     {
         return defined('STREAM_CRYPTO_METHOD_TLS_CLIENT')
@@ -254,6 +278,9 @@ final class SmtpEmailDispatcher
             : STREAM_CRYPTO_METHOD_ANY_CLIENT;
     }
 
+    /**
+     * Required String.
+     */
     private function requiredString(mixed $value, string $message): string
     {
         $string = $this->nullableString($value);
@@ -265,6 +292,9 @@ final class SmtpEmailDispatcher
         return $string;
     }
 
+    /**
+     * Nullable String.
+     */
     private function nullableString(mixed $value): ?string
     {
         if (!is_string($value) && !is_numeric($value)) {
@@ -276,6 +306,9 @@ final class SmtpEmailDispatcher
         return $string === '' ? null : $string;
     }
 
+    /**
+     * Email Address.
+     */
     private function emailAddress(mixed $value, string $message): string
     {
         $email = $this->nullableEmailAddress($value);
@@ -287,6 +320,9 @@ final class SmtpEmailDispatcher
         return $email;
     }
 
+    /**
+     * Nullable Email Address.
+     */
     private function nullableEmailAddress(mixed $value): ?string
     {
         $email = $this->nullableString($value);
@@ -302,6 +338,9 @@ final class SmtpEmailDispatcher
         return $email;
     }
 
+    /**
+     * Port.
+     */
     private function port(mixed $value): int
     {
         if (!is_numeric($value)) {
@@ -317,6 +356,9 @@ final class SmtpEmailDispatcher
         return $port;
     }
 
+    /**
+     * Encryption.
+     */
     private function encryption(mixed $value): string
     {
         $encryption = strtolower($this->requiredString($value, 'SMTP encryption is required.'));
@@ -328,3 +370,4 @@ final class SmtpEmailDispatcher
         return $encryption;
     }
 }
+

@@ -6,6 +6,9 @@ use DateTimeImmutable;
 
 final readonly class AvailabilityExceptionData
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public string $ownerType,
         public string $ownerId,
@@ -19,3 +22,4 @@ final readonly class AvailabilityExceptionData
     ) {
     }
 }
+

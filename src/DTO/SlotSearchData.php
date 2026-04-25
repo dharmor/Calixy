@@ -6,6 +6,9 @@ use DateTimeImmutable;
 
 final readonly class SlotSearchData
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public int|string $serviceId,
         public DateTimeImmutable $windowStart,
@@ -20,3 +23,4 @@ final readonly class SlotSearchData
     ) {
     }
 }
+

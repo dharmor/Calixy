@@ -9,6 +9,9 @@ use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
 
+/**
+ * Controller.
+ */
 abstract class Controller extends \Illuminate\Routing\Controller
 {
     /**
@@ -57,16 +60,25 @@ abstract class Controller extends \Illuminate\Routing\Controller
         ], $status);
     }
 
+    /**
+     * Parse Date Time.
+     */
     protected function parseDateTime(string $value, ?string $timezone = null): DateTimeImmutable
     {
         return new DateTimeImmutable($value, new DateTimeZone($timezone ?? $this->defaultTimezone()));
     }
 
+    /**
+     * Default Timezone.
+     */
     protected function defaultTimezone(): string
     {
         return (string) config('unified-appointments.app_timezone', 'UTC');
     }
 
+    /**
+     * String Or Null.
+     */
     protected function stringOrNull(mixed $value): ?string
     {
         if ($value === null || $value === '') {
@@ -76,6 +88,9 @@ abstract class Controller extends \Illuminate\Routing\Controller
         return (string) $value;
     }
 
+    /**
+     * Int Or Null.
+     */
     protected function intOrNull(mixed $value): ?int
     {
         if ($value === null || $value === '') {
@@ -85,6 +100,9 @@ abstract class Controller extends \Illuminate\Routing\Controller
         return (int) $value;
     }
 
+    /**
+     * Float Or Null.
+     */
     protected function floatOrNull(mixed $value): ?float
     {
         if ($value === null || $value === '') {
@@ -94,6 +112,9 @@ abstract class Controller extends \Illuminate\Routing\Controller
         return (float) $value;
     }
 
+    /**
+     * Runtime Status.
+     */
     protected function runtimeStatus(RuntimeException $exception): int
     {
         $message = strtolower($exception->getMessage());
@@ -109,3 +130,4 @@ abstract class Controller extends \Illuminate\Routing\Controller
         return 422;
     }
 }
+

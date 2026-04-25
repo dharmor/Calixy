@@ -6,6 +6,9 @@ use DateTimeImmutable;
 
 final readonly class BookAppointmentData
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public int|string $serviceId,
         public DateTimeImmutable $startsAt,
@@ -25,3 +28,4 @@ final readonly class BookAppointmentData
     ) {
     }
 }
+

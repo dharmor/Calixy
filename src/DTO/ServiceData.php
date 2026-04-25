@@ -4,6 +4,9 @@ namespace UnifiedAppointments\DTO;
 
 final readonly class ServiceData
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public string $name,
         public int $durationMinutes,
@@ -21,3 +24,4 @@ final readonly class ServiceData
     ) {
     }
 }
+

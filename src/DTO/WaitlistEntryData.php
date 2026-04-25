@@ -6,6 +6,9 @@ use DateTimeImmutable;
 
 final readonly class WaitlistEntryData
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public int|string $serviceId,
         public DateTimeImmutable $preferredStart,
@@ -22,3 +25,4 @@ final readonly class WaitlistEntryData
     ) {
     }
 }
+

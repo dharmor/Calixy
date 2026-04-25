@@ -4,6 +4,9 @@ namespace UnifiedAppointments\DTO;
 
 final readonly class AvailabilityRuleData
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public string $ownerType,
         public string $ownerId,
@@ -19,3 +22,4 @@ final readonly class AvailabilityRuleData
     ) {
     }
 }
+

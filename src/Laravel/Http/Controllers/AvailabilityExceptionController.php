@@ -8,8 +8,14 @@ use Illuminate\Support\Facades\Validator;
 use UnifiedAppointments\DTO\AvailabilityExceptionData;
 use UnifiedAppointments\Services\AppointmentScheduler;
 
+/**
+ * AvailabilityExceptionController.
+ */
 final class AvailabilityExceptionController extends Controller
 {
+    /**
+     * Store.
+     */
     public function store(Request $request, AppointmentScheduler $scheduler): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -60,3 +66,4 @@ final class AvailabilityExceptionController extends Controller
         });
     }
 }
+

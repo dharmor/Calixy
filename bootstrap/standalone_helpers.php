@@ -1,6 +1,9 @@
 <?php
 
 if (!function_exists('env')) {
+    /**
+     * Env.
+     */
     function env(string $key, mixed $default = null): mixed
     {
         $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
@@ -24,6 +27,9 @@ if (!function_exists('env')) {
 }
 
 if (!function_exists('config')) {
+    /**
+     * Config.
+     */
     function config(string $key, mixed $default = null): mixed
     {
         return $default;
@@ -31,6 +37,9 @@ if (!function_exists('config')) {
 }
 
 if (!function_exists('database_path')) {
+    /**
+     * Database_path.
+     */
     function database_path(string $path = ''): string
     {
         $base = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'database';
@@ -42,3 +51,4 @@ if (!function_exists('database_path')) {
         return $base . DIRECTORY_SEPARATOR . ltrim($path, '\\/');
     }
 }
+

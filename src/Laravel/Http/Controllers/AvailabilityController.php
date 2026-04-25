@@ -8,8 +8,14 @@ use Illuminate\Support\Facades\Validator;
 use UnifiedAppointments\DTO\SlotSearchData;
 use UnifiedAppointments\Services\AppointmentScheduler;
 
+/**
+ * AvailabilityController.
+ */
 final class AvailabilityController extends Controller
 {
+    /**
+     * Index.
+     */
     public function index(Request $request, AppointmentScheduler $scheduler): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -70,3 +76,4 @@ final class AvailabilityController extends Controller
         });
     }
 }
+

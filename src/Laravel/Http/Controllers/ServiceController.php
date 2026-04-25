@@ -8,8 +8,14 @@ use Illuminate\Support\Facades\Validator;
 use UnifiedAppointments\DTO\ServiceData;
 use UnifiedAppointments\Services\AppointmentScheduler;
 
+/**
+ * ServiceController.
+ */
 final class ServiceController extends Controller
 {
+    /**
+     * Store.
+     */
     public function store(Request $request, AppointmentScheduler $scheduler): JsonResponse
     {
         $validated = Validator::make($request->all(), [
@@ -51,3 +57,4 @@ final class ServiceController extends Controller
         });
     }
 }
+

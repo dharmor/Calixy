@@ -16,24 +16,39 @@ use UnifiedAppointments\DTO\WaitlistEntryData;
 use UnifiedAppointments\Models\AppointmentSlot;
 use UnifiedAppointments\Repositories\AppointmentRepository;
 
+/**
+ * AppointmentScheduler.
+ */
 final class AppointmentScheduler
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         private readonly AppointmentRepository $repository,
         private readonly SchemaManager $schema,
     ) {
     }
 
+    /**
+     * Install.
+     */
     public function install(): void
     {
         $this->schema->install();
     }
 
+    /**
+     * Create Service.
+     */
     public function createService(ServiceData $data): int|string
     {
         return $this->repository->createService($data);
     }
 
+    /**
+     * Add Availability Rule.
+     */
     public function addAvailabilityRule(AvailabilityRuleData $data): int|string
     {
         $this->assertOwnerType($data->ownerType);
@@ -45,6 +60,9 @@ final class AppointmentScheduler
         return $this->repository->createAvailabilityRule($data);
     }
 
+    /**
+     * Add Availability Exception.
+     */
     public function addAvailabilityException(AvailabilityExceptionData $data): int|string
     {
         $this->assertOwnerType($data->ownerType);
@@ -56,6 +74,9 @@ final class AppointmentScheduler
         return $this->repository->createAvailabilityException($data);
     }
 
+    /**
+     * Add To Waitlist.
+     */
     public function addToWaitlist(WaitlistEntryData $data): int|string
     {
         return $this->repository->addToWaitlist($data);
@@ -179,6 +200,9 @@ final class AppointmentScheduler
         return array_values($slots);
     }
 
+    /**
+     * Book Appointment.
+     */
     public function bookAppointment(BookAppointmentData $data): int|string
     {
         $service = $this->mustFindService($data->serviceId, $data->tenantId, $data->locationId);
@@ -244,6 +268,9 @@ final class AppointmentScheduler
         ]);
     }
 
+    /**
+     * Reschedule Appointment.
+     */
     public function rescheduleAppointment(
         int|string $appointmentId,
         DateTimeImmutable $newStart,
@@ -308,6 +335,9 @@ final class AppointmentScheduler
         ]);
     }
 
+    /**
+     * Cancel Appointment.
+     */
     public function cancelAppointment(int|string $appointmentId, ?string $reason = null): void
     {
         $updated = $this->repository->updateAppointment($appointmentId, [
@@ -497,6 +527,9 @@ final class AppointmentScheduler
         return true;
     }
 
+    /**
+     * Find Exact Slot.
+     */
     private function findExactSlot(SlotSearchData $search, DateTimeImmutable $expectedStart): ?AppointmentSlot
     {
         $expectedUtc = $expectedStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
@@ -510,6 +543,9 @@ final class AppointmentScheduler
         return null;
     }
 
+    /**
+     * Assert No Appointment Overlap.
+     */
     private function assertNoAppointmentOverlap(
         DateTimeImmutable $occupiedStart,
         DateTimeImmutable $occupiedEnd,
@@ -549,6 +585,9 @@ final class AppointmentScheduler
         return $service;
     }
 
+    /**
+     * Assert Owner Selection.
+     */
     private function assertOwnerSelection(?string $staffId, ?string $resourceId): void
     {
         if ($staffId === null && $resourceId === null) {
@@ -556,6 +595,9 @@ final class AppointmentScheduler
         }
     }
 
+    /**
+     * Assert Owner Type.
+     */
     private function assertOwnerType(string $ownerType): void
     {
         if (!in_array($ownerType, ['staff', 'resource'], true)) {
@@ -563,23 +605,36 @@ final class AppointmentScheduler
         }
     }
 
+    /**
+     * Resolve Timezone.
+     */
     private function resolveTimezone(string $timezone): DateTimeZone
     {
         return new DateTimeZone($timezone);
     }
 
+    /**
+     * Utc Now.
+     */
     private function utcNow(): DateTimeImmutable
     {
         return new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
+    /**
+     * To Utc String.
+     */
     private function toUtcString(DateTimeImmutable $dateTime): string
     {
         return $dateTime->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     }
 
+    /**
+     * Float Or Null.
+     */
     private function floatOrNull(mixed $value): ?float
     {
         return $value === null || $value === '' ? null : (float) $value;
     }
 }
+

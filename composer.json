@@ -1,11 +1,10 @@
 {
-    "name": "alpha9/unified-appointments",
+    "name": "calixy/unified-appointments",
     "description": "Appointment and availability engine for Laravel apps backed by the Unified Databases connection layer.",
     "type": "library",
     "license": "proprietary",
     "keywords": [
         "laravel",
-        "filament",
         "appointments",
         "availability",
         "scheduling"
@@ -21,9 +20,7 @@
         "illuminate/validation": "^11.0 || ^12.0 || ^13.0",
         "illuminate/view": "^11.0 || ^12.0 || ^13.0"
     },
-    "suggest": {
-        "filament/filament": "Register the bundled Filament plugin and admin page."
-    },
+    "suggest": {},
     "autoload": {
         "psr-4": {
             "UnifiedAppointments\\": "src/"
@@ -35,6 +32,7 @@
                 "UnifiedAppointments\\Laravel\\UnifiedAppointmentsServiceProvider"
             ],
             "aliases": {
+                "Calixy": "UnifiedAppointments\\Laravel\\Facades\\Calixy",
                 "UnifiedAppointments": "UnifiedAppointments\\Laravel\\Facades\\UnifiedAppointments"
             }
         }

@@ -6,6 +6,9 @@ use DateTimeImmutable;
 
 final readonly class AppointmentSlot
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public DateTimeImmutable $startsAt,
         public DateTimeImmutable $endsAt,
@@ -35,3 +38,4 @@ final readonly class AppointmentSlot
         ];
     }
 }
+

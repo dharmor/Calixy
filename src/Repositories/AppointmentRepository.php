@@ -12,14 +12,23 @@ use UnifiedAppointments\DTO\AvailabilityRuleData;
 use UnifiedAppointments\DTO\ServiceData;
 use UnifiedAppointments\DTO\WaitlistEntryData;
 
+/**
+ * AppointmentRepository.
+ */
 final class AppointmentRepository
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         private readonly UnifiedDatabaseConnector $connector,
         private readonly UnifiedAppointmentsConfig $config,
     ) {
     }
 
+    /**
+     * Create Service.
+     */
     public function createService(ServiceData $data): int|string
     {
         return $this->insert($this->table('services'), [
@@ -41,6 +50,9 @@ final class AppointmentRepository
         ]);
     }
 
+    /**
+     * Create Availability Rule.
+     */
     public function createAvailabilityRule(AvailabilityRuleData $data): int|string
     {
         return $this->insert($this->table('availability_rules'), [
@@ -60,6 +72,9 @@ final class AppointmentRepository
         ]);
     }
 
+    /**
+     * Create Availability Exception.
+     */
     public function createAvailabilityException(AvailabilityExceptionData $data): int|string
     {
         return $this->insert($this->table('availability_exceptions'), [
@@ -84,6 +99,9 @@ final class AppointmentRepository
         return $this->insert($this->table('appointments'), $payload);
     }
 
+    /**
+     * Add To Waitlist.
+     */
     public function addToWaitlist(WaitlistEntryData $data): int|string
     {
         return $this->insert($this->table('waitlist_entries'), [
@@ -229,6 +247,9 @@ final class AppointmentRepository
         ]));
     }
 
+    /**
+     * Upsert System Config.
+     */
     public function upsertSystemConfig(string $key, ?string $value, ?string $group = null): void
     {
         $record = $this->findByFilters($this->table('system_config'), ['config_key' => $key]);
@@ -271,6 +292,9 @@ final class AppointmentRepository
         }
     }
 
+    /**
+     * Timezone Count.
+     */
     public function timezoneCount(): int
     {
         $result = $this->connector->first(
@@ -280,6 +304,9 @@ final class AppointmentRepository
         return (int) ($result['aggregate_count'] ?? 0);
     }
 
+    /**
+     * Get System Config.
+     */
     public function getSystemConfig(string $key): ?string
     {
         $record = $this->findByFilters($this->table('system_config'), ['config_key' => $key]);
@@ -291,6 +318,9 @@ final class AppointmentRepository
         return $record['config_value'] === null ? null : (string) $record['config_value'];
     }
 
+    /**
+     * Has System Config.
+     */
     public function hasSystemConfig(string $key): bool
     {
         return $this->findByFilters($this->table('system_config'), ['config_key' => $key]) !== null;
@@ -864,11 +894,17 @@ final class AppointmentRepository
         return $this->connector->execute($sql, $params);
     }
 
+    /**
+     * Quoted Table.
+     */
     private function quotedTable(string $name): string
     {
         return $this->connector->quoteIdentifier($this->table($name));
     }
 
+    /**
+     * Quoted Table By Name.
+     */
     private function quotedTableByName(string $table): string
     {
         return $this->connector->quoteIdentifier($table);
@@ -886,23 +922,36 @@ final class AppointmentRepository
         return ' WHERE ' . implode(' AND ', $filters);
     }
 
+    /**
+     * Table.
+     */
     private function table(string $name): string
     {
         return $this->config->table($name);
     }
 
+    /**
+     * Quote.
+     */
     private function quote(string $column): string
     {
         return $this->connector->quoteIdentifier($column);
     }
 
+    /**
+     * Now Utc.
+     */
     private function nowUtc(): string
     {
         return (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
     }
 
+    /**
+     * To Utc String.
+     */
     private function toUtcString(DateTimeImmutable $dateTime): string
     {
         return $dateTime->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     }
 }
+

@@ -8,8 +8,14 @@ use Illuminate\Support\Facades\Validator;
 use UnifiedAppointments\DTO\WaitlistEntryData;
 use UnifiedAppointments\Services\AppointmentScheduler;
 
+/**
+ * WaitlistController.
+ */
 final class WaitlistController extends Controller
 {
+    /**
+     * Store.
+     */
     public function store(Request $request, AppointmentScheduler $scheduler): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -66,3 +72,4 @@ final class WaitlistController extends Controller
         });
     }
 }
+

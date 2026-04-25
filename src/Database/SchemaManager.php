@@ -6,14 +6,23 @@ use PDOException;
 use Throwable;
 use UnifiedAppointments\Config\UnifiedAppointmentsConfig;
 
+/**
+ * SchemaManager.
+ */
 final class SchemaManager
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         private readonly UnifiedDatabaseConnector $connector,
         private readonly UnifiedAppointmentsConfig $config,
     ) {
     }
 
+    /**
+     * Install.
+     */
     public function install(): void
     {
         foreach ($this->tableStatements() as $sql) {
@@ -27,6 +36,9 @@ final class SchemaManager
         }
     }
 
+    /**
+     * Is Installed.
+     */
     public function isInstalled(): bool
     {
         try {
@@ -542,6 +554,9 @@ final class SchemaManager
         ];
     }
 
+    /**
+     * Execute Index Statement.
+     */
     private function executeIndexStatement(string $sql): void
     {
         try {
@@ -562,6 +577,9 @@ final class SchemaManager
         }
     }
 
+    /**
+     * Ensure Appointment Reminder Columns.
+     */
     private function ensureAppointmentReminderColumns(): void
     {
         $driver = $this->connector->driverName();
@@ -588,6 +606,9 @@ final class SchemaManager
         );
     }
 
+    /**
+     * Ensure Column Exists.
+     */
     private function ensureColumnExists(string $table, string $column, string $definition): void
     {
         if ($this->columnExists($table, $column)) {
@@ -602,6 +623,9 @@ final class SchemaManager
         ));
     }
 
+    /**
+     * Column Exists.
+     */
     private function columnExists(string $table, string $column): bool
     {
         $tableName = $this->config->table($table);
@@ -630,6 +654,9 @@ final class SchemaManager
         };
     }
 
+    /**
+     * Sqlite Column Exists.
+     */
     private function sqliteColumnExists(string $tableName, string $column): bool
     {
         $rows = $this->connector->select(sprintf(
@@ -646,6 +673,9 @@ final class SchemaManager
         return false;
     }
 
+    /**
+     * Id Column Definition.
+     */
     private function idColumnDefinition(string $driver): string
     {
         return match ($driver) {
@@ -656,6 +686,9 @@ final class SchemaManager
         };
     }
 
+    /**
+     * String Type.
+     */
     private function stringType(string $driver, int $length = 191): string
     {
         return match ($driver) {
@@ -664,6 +697,9 @@ final class SchemaManager
         };
     }
 
+    /**
+     * Text Type.
+     */
     private function textType(string $driver): string
     {
         return match ($driver) {
@@ -672,6 +708,9 @@ final class SchemaManager
         };
     }
 
+    /**
+     * Timestamp Type.
+     */
     private function timestampType(string $driver): string
     {
         return match ($driver) {
@@ -680,33 +719,52 @@ final class SchemaManager
         };
     }
 
+    /**
+     * Date Type.
+     */
     private function dateType(string $driver): string
     {
         return 'DATE';
     }
 
+    /**
+     * Decimal Type.
+     */
     private function decimalType(string $driver): string
     {
         return 'DECIMAL(10,2)';
     }
 
+    /**
+     * Integer Type.
+     */
     private function integerType(string $driver): string
     {
         return 'INTEGER';
     }
 
+    /**
+     * Table.
+     */
     private function table(string $name): string
     {
         return $this->quote($this->config->table($name));
     }
 
+    /**
+     * Quote.
+     */
     private function quote(string $identifier): string
     {
         return $this->connector->quoteIdentifier($identifier);
     }
 
+    /**
+     * Index Name.
+     */
     private function indexName(string $suffix): string
     {
         return $this->connector->quoteIdentifier($this->config->table($suffix . '_idx'));
     }
 }
+

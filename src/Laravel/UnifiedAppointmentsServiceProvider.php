@@ -2,22 +2,27 @@
 
 namespace UnifiedAppointments\Laravel;
 
-use Composer\InstalledVersions;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Support\Facades\Route;
-use Throwable;
 use UnifiedAppointments\Config\UnifiedAppointmentsConfig;
 use UnifiedAppointments\Database\SchemaManager;
 use UnifiedAppointments\Database\UnifiedDatabaseConnector;
 use UnifiedAppointments\Laravel\Commands\InstallUnifiedAppointmentsCommand;
 use UnifiedAppointments\Repositories\AppointmentRepository;
 use UnifiedAppointments\Services\AppointmentScheduler;
+use UnifiedAppointments\Support\AboutMetadataResolver;
 use UnifiedAppointments\Themes\ThemeManager;
 
+/**
+ * UnifiedAppointmentsServiceProvider.
+ */
 class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProvider
 {
     private static bool $startupBootstrapped = false;
 
+    /**
+     * Register.
+     */
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../../config/unified-appointments.php', 'unified-appointments');
@@ -68,6 +73,9 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
         $this->app->alias(AppointmentScheduler::class, 'unified-appointments');
     }
 
+    /**
+     * Boot.
+     */
     public function boot(): void
     {
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'unified-appointments');
@@ -90,6 +98,9 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
         }
     }
 
+    /**
+     * Bootstrap Startup Edition.
+     */
     private function bootstrapStartupEdition(): void
     {
         if (self::$startupBootstrapped) {
@@ -127,6 +138,9 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
         self::$startupBootstrapped = true;
     }
 
+    /**
+     * Boot Routes.
+     */
     private function bootRoutes(): void
     {
         if ($this->app->routesAreCached()) {
@@ -167,6 +181,9 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
             });
     }
 
+    /**
+     * Register About Details.
+     */
     private function registerAboutDetails(): void
     {
         if (!class_exists(AboutCommand::class)) {
@@ -174,8 +191,13 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
         }
 
         $config = $this->app->make(UnifiedAppointmentsConfig::class);
+        $configuredName = config('unified-appointments.ui.application_name');
+        $aboutName = AboutMetadataResolver::resolveName(
+            is_string($configuredName) ? $configuredName : null,
+            is_string(config('app.name')) ? config('app.name') : 'Calixy',
+        );
 
-        AboutCommand::add('Calixy', fn (): array => [
+        AboutCommand::add($aboutName, fn (): array => [
             'Edition' => $config->edition,
             'Laravel Connection' => (string) ($config->connection ?? config('database.default', 'sqlite')),
             'Driver' => $config->driver,
@@ -186,23 +208,19 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
         ]);
     }
 
+    /**
+     * Package Version.
+     */
     public static function packageVersion(): string
     {
-        if (!class_exists(InstalledVersions::class)) {
-            return 'unknown';
-        }
+        $configuredVersion = function_exists('config') ? config('unified-appointments.ui.version') : null;
 
-        try {
-            if (!InstalledVersions::isInstalled('alpha9/unified-appointments')) {
-                return 'unknown';
-            }
-
-            $version = InstalledVersions::getPrettyVersion('alpha9/unified-appointments');
-
-            return is_string($version) && $version !== '' ? $version : 'unknown';
-        } catch (Throwable) {
-            return 'unknown';
-        }
+        return AboutMetadataResolver::resolveVersion(
+            is_string($configuredVersion) ? $configuredVersion : null,
+            dirname(__DIR__, 2),
+            'calixy/unified-appointments',
+        );
     }
 }
+
 

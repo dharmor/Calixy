@@ -43,7 +43,7 @@ Start from an existing Laravel app.
 For the default startup edition, just require the package and let it boot:
 
 ```bash
-composer require alpha9/unified-appointments
+composer require calixy/unified-appointments
 ```
 
 On first boot, the package will create and use:
@@ -55,7 +55,7 @@ No `php artisan unified-appointments:install` step is required for that startup 
 If you want Pro edition behavior or another database engine, publish the config and run the explicit install command:
 
 ```bash
-composer require alpha9/unified-appointments
+composer require calixy/unified-appointments
 php artisan vendor:publish --tag=unified-appointments-config
 php artisan unified-appointments:install
 ```
@@ -148,7 +148,7 @@ The package now includes:
 - `Calixy` facade alias
 - `UnifiedAppointments` facade alias
 - startup SQLite auto-bootstrap
-- explicit install command for Pro and alternate databases
+- explicit install command for alternate databases
 - package-level overrides for custom connections
 - configurable API route registration
 - JSON controllers for services, availability, appointments, and waitlists
@@ -160,7 +160,6 @@ The package now includes:
 If you want Calixy to use Pro mode or a different database, override it explicitly:
 
 ```env
-UNIFIED_APPOINTMENTS_EDITION=pro
 UNIFIED_APPOINTMENTS_CONNECTION=sqlsrv
 UNIFIED_APPOINTMENTS_DRIVER=mssql
 UNIFIED_APPOINTMENTS_HOST=127.0.0.1
@@ -212,7 +211,7 @@ use UnifiedAppointments\Repositories\AppointmentRepository;
 use UnifiedAppointments\Services\AppointmentScheduler;
 
 $config = UnifiedAppointmentsConfig::fromArray([
-    'database_library_path' => 'C:\\Apache24\\htdocs\\Unified Databases',
+    'database_library_path' => 'Unified Databases',
     'driver' => 'sqlite',
     'host' => __DIR__ . '/storage/appointments.sqlite',
     'database' => __DIR__ . '/storage/appointments.sqlite',

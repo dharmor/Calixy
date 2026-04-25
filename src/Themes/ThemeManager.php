@@ -2,6 +2,9 @@
 
 namespace UnifiedAppointments\Themes;
 
+/**
+ * ThemeManager.
+ */
 final class ThemeManager
 {
     /**
@@ -30,6 +33,9 @@ final class ThemeManager
         return $normalized;
     }
 
+    /**
+     * Default Theme Key.
+     */
     public function defaultThemeKey(): string
     {
         $default = (string) ($this->uiConfig()['theme'] ?? 'sunrise');
@@ -55,16 +61,25 @@ final class ThemeManager
         return $themes[$key];
     }
 
+    /**
+     * Resolve Key.
+     */
     public function resolveKey(?string $requestedTheme = null): string
     {
         return (string) $this->resolve($requestedTheme)['key'];
     }
 
+    /**
+     * Theme Query Parameter.
+     */
     public function themeQueryParameter(): string
     {
         return (string) ($this->uiConfig()['theme_query_parameter'] ?? 'theme');
     }
 
+    /**
+     * Theme Switcher Enabled.
+     */
     public function themeSwitcherEnabled(): bool
     {
         return filter_var(
@@ -171,3 +186,4 @@ final class ThemeManager
         ];
     }
 }
+

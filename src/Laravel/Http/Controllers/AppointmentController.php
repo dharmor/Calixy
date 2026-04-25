@@ -8,8 +8,14 @@ use Illuminate\Support\Facades\Validator;
 use UnifiedAppointments\DTO\BookAppointmentData;
 use UnifiedAppointments\Services\AppointmentScheduler;
 
+/**
+ * AppointmentController.
+ */
 final class AppointmentController extends Controller
 {
+    /**
+     * Store.
+     */
     public function store(Request $request, AppointmentScheduler $scheduler): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -68,6 +74,9 @@ final class AppointmentController extends Controller
         });
     }
 
+    /**
+     * Reschedule.
+     */
     public function reschedule(string $appointment, Request $request, AppointmentScheduler $scheduler): JsonResponse
     {
         $validated = Validator::make($request->all(), [
@@ -87,6 +96,9 @@ final class AppointmentController extends Controller
         });
     }
 
+    /**
+     * Cancel.
+     */
     public function cancel(string $appointment, Request $request, AppointmentScheduler $scheduler): JsonResponse
     {
         $validated = Validator::make($request->all(), [
@@ -103,3 +115,4 @@ final class AppointmentController extends Controller
         });
     }
 }
+

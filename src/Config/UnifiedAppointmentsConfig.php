@@ -4,6 +4,9 @@ namespace UnifiedAppointments\Config;
 
 final readonly class UnifiedAppointmentsConfig
 {
+    /**
+     * Create a new instance.
+     */
     public function __construct(
         public string $databaseLibraryPath,
         public string $edition = 'startup',
@@ -25,16 +28,20 @@ final readonly class UnifiedAppointmentsConfig
      */
     public static function fromArray(array $config): self
     {
-        $database = isset($config['database']) ? (string) $config['database'] : null;
+        $database = isset($config['database']) ? self::resolveFilesystemPath((string) $config['database']) : null;
         $driver = (string) ($config['driver'] ?? 'sqlite');
         $host = (string) ($config['host'] ?? '');
 
         if ($driver === 'sqlite' && $host === '' && $database !== null) {
             $host = $database;
+        } elseif ($driver === 'sqlite' && $host !== '') {
+            $host = (string) self::resolveFilesystemPath($host);
         }
 
         return new self(
-            databaseLibraryPath: (string) ($config['database_library_path'] ?? 'C:\\Apache24\\htdocs\\Unified Databases'),
+            databaseLibraryPath: (string) self::resolveFilesystemPath(
+                (string) ($config['database_library_path'] ?? 'C:\\Apache24\\htdocs\\Unified Databases'),
+            ),
             edition: strtolower((string) ($config['edition'] ?? 'startup')),
             autoBootstrap: self::boolValue($config['auto_bootstrap'] ?? true),
             connection: isset($config['connection']) && $config['connection'] !== '' ? (string) $config['connection'] : null,
@@ -68,7 +75,7 @@ final readonly class UnifiedAppointmentsConfig
         $explicitPassword = self::stringOrNull($config['password'] ?? null);
         $explicitDatabase = self::stringOrNull($config['database'] ?? null);
         $explicitPort = self::intOrNull($config['port'] ?? null);
-        $startupDatabase = self::stringOrNull($startup['database'] ?? null);
+        $startupDatabase = self::resolveFilesystemPath(self::stringOrNull($startup['database'] ?? null));
         $autoBootstrap = self::boolValue($startup['auto_bootstrap'] ?? true);
         $useStartupDefaults = $edition === 'startup'
             && $explicitConnection === null
@@ -81,7 +88,9 @@ final readonly class UnifiedAppointmentsConfig
 
         if ($useStartupDefaults) {
             return new self(
-                databaseLibraryPath: (string) ($config['database_library_path'] ?? 'C:\\Apache24\\htdocs\\Unified Databases'),
+                databaseLibraryPath: (string) self::resolveFilesystemPath(
+                    (string) ($config['database_library_path'] ?? 'C:\\Apache24\\htdocs\\Unified Databases'),
+                ),
                 edition: $edition,
                 autoBootstrap: $autoBootstrap,
                 connection: null,
@@ -100,8 +109,11 @@ final readonly class UnifiedAppointmentsConfig
         $resolvedDriver = $explicitDriver
             ?? self::mapLaravelDriver(self::stringOrNull($laravelConnection['driver'] ?? $connectionName) ?? 'sqlite');
 
-        $resolvedDatabase = $explicitDatabase
-            ?? self::stringOrNull($laravelConnection['database'] ?? null);
+        $resolvedDatabase = $explicitDatabase ?? self::stringOrNull($laravelConnection['database'] ?? null);
+
+        if ($resolvedDriver === 'sqlite') {
+            $resolvedDatabase = self::resolveFilesystemPath($resolvedDatabase);
+        }
 
         if ($resolvedDriver === 'sqlite' && $resolvedDatabase === null) {
             $resolvedDatabase = $startupDatabase;
@@ -111,8 +123,14 @@ final readonly class UnifiedAppointmentsConfig
             ?? self::stringOrNull($laravelConnection['host'] ?? null)
             ?? ($resolvedDriver === 'sqlite' ? (string) $resolvedDatabase : '');
 
+        if ($resolvedDriver === 'sqlite' && $resolvedHost !== null && $resolvedHost !== '') {
+            $resolvedHost = self::resolveFilesystemPath($resolvedHost);
+        }
+
         return new self(
-            databaseLibraryPath: (string) ($config['database_library_path'] ?? 'C:\\Apache24\\htdocs\\Unified Databases'),
+            databaseLibraryPath: (string) self::resolveFilesystemPath(
+                (string) ($config['database_library_path'] ?? 'C:\\Apache24\\htdocs\\Unified Databases'),
+            ),
             edition: $edition,
             autoBootstrap: $edition === 'startup' && $resolvedDriver === 'sqlite' ? $autoBootstrap : false,
             connection: $resolvedConnection,
@@ -132,16 +150,25 @@ final readonly class UnifiedAppointmentsConfig
         );
     }
 
+    /**
+     * Table.
+     */
     public function table(string $name): string
     {
         return $this->tablePrefix . $name;
     }
 
+    /**
+     * Should Auto Bootstrap.
+     */
     public function shouldAutoBootstrap(): bool
     {
         return $this->edition === 'startup' && $this->driver === 'sqlite' && $this->autoBootstrap;
     }
 
+    /**
+     * Map Laravel Driver.
+     */
     private static function mapLaravelDriver(string $driver): string
     {
         return match ($driver) {
@@ -152,6 +179,9 @@ final readonly class UnifiedAppointmentsConfig
         };
     }
 
+    /**
+     * String Or Null.
+     */
     private static function stringOrNull(mixed $value): ?string
     {
         if ($value === null || $value === '') {
@@ -161,6 +191,9 @@ final readonly class UnifiedAppointmentsConfig
         return (string) $value;
     }
 
+    /**
+     * Int Or Null.
+     */
     private static function intOrNull(mixed $value): ?int
     {
         if ($value === null || $value === '') {
@@ -170,6 +203,9 @@ final readonly class UnifiedAppointmentsConfig
         return (int) $value;
     }
 
+    /**
+     * Bool Value.
+     */
     private static function boolValue(mixed $value): bool
     {
         if (is_bool($value)) {
@@ -182,4 +218,33 @@ final readonly class UnifiedAppointmentsConfig
 
         return (bool) $value;
     }
+
+    /**
+     * Resolve Filesystem Path.
+     */
+    private static function resolveFilesystemPath(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return $path;
+        }
+
+        if ($path === ':memory:' || str_starts_with($path, 'file:')) {
+            return $path;
+        }
+
+        if (self::isAbsolutePath($path) || !function_exists('base_path')) {
+            return $path;
+        }
+
+        return base_path($path);
+    }
+
+    /**
+     * Is Absolute Path.
+     */
+    private static function isAbsolutePath(string $path): bool
+    {
+        return preg_match('/^(?:[A-Za-z]:[\\\\\\/]|\\\\\\\\|\\/)/', $path) === 1;
+    }
 }
+

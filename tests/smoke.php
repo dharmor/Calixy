@@ -19,7 +19,7 @@ if (is_file($databasePath)) {
 }
 
 $config = UnifiedAppointmentsConfig::fromArray([
-    'database_library_path' => 'C:\\Apache24\\htdocs\\Unified Databases',
+    'database_library_path' => 'Unified Databases',
     'driver' => 'sqlite',
     'host' => $databasePath,
     'database' => $databasePath,
