@@ -25,9 +25,6 @@ It is designed for:
 - company branding with a customizable company name and logo URL or uploaded logo
 - starter pages for Services, Locations, Team, Notifications, Google, and Microsoft
 
-The package defaults to the Unified Databases source path at:
-
-`C:\Apache24\htdocs\Unified Databases`
 
 It also ships with built-in UI themes:
 
