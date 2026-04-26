@@ -30,7 +30,7 @@ It also ships with built-in UI themes:
 
 The package root now also includes a Laravel-style `public/index.php` entry point so there is a clear web start location inside the package source.
 When you open that starting page in the startup edition, it boots a fully functional SQLite-backed application with a left-side navigation shell, starter service data, a calendar view, weekly availability, booking, rescheduling, cancellations, blackout dates, and waitlist management.
-The startup edition also seeds a timezone catalog into SQLite from a local snapshot derived from Easy!Appointments `Timezones.php` so the selected system timezone is stored in the database instead of only in config.
+The startup edition also seeds a timezone catalog into SQLite so the selected system timezone is stored in the database instead of only in config.
 Locations and Team are now wired into the starter context as live filters, so the calendar, booking flow, appointments, waitlist, and setup forms can all be scoped to the selected location and booking owner.
 
 ## Install
