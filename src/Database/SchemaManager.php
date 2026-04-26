@@ -26,7 +26,7 @@ final class SchemaManager
     public function install(): void
     {
         foreach ($this->tableStatements() as $sql) {
-            $this->connector->pdo()->exec($sql);
+            $this->executeTableStatement($sql);
         }
 
         $this->ensureAppointmentReminderColumns();
@@ -578,6 +578,35 @@ final class SchemaManager
     }
 
     /**
+     * Execute Table Statement.
+     */
+    private function executeTableStatement(string $sql): void
+    {
+        $driver = $this->connector->driverName();
+        $statement = $sql;
+
+        if ($driver === 'sqlsrv') {
+            // SQL Server does not support CREATE TABLE IF NOT EXISTS syntax.
+            $statement = str_replace('CREATE TABLE IF NOT EXISTS', 'CREATE TABLE', $statement);
+        }
+
+        try {
+            $this->connector->pdo()->exec($statement);
+        } catch (PDOException $exception) {
+            $message = strtolower($exception->getMessage());
+
+            if (
+                str_contains($message, 'already exists')
+                || str_contains($message, 'there is already an object named')
+            ) {
+                return;
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
      * Ensure Appointment Reminder Columns.
      */
     private function ensureAppointmentReminderColumns(): void
@@ -612,6 +641,19 @@ final class SchemaManager
     private function ensureColumnExists(string $table, string $column, string $definition): void
     {
         if ($this->columnExists($table, $column)) {
+            return;
+        }
+
+        $driver = $this->connector->driverName();
+
+        if ($driver === 'sqlsrv') {
+            $this->connector->pdo()->exec(sprintf(
+                'ALTER TABLE %s ADD %s %s',
+                $this->table($table),
+                $this->quote($column),
+                $definition,
+            ));
+
             return;
         }
 

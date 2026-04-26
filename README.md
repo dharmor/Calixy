@@ -1,7 +1,3 @@
-
-# This Version is still in testing. It's been tested with sqlite and MySQL. 
-#The instalation has not been tested yet. Version 2.0 will have the complete set up and fully tested. 
-
 # Calixy
 
 `Calixy` is a Laravel-compatible appointment and availability package that uses the Unified Databases connection layer instead of Laravel's native database manager.

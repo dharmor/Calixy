@@ -30,6 +30,7 @@ final class UnifiedDatabaseConnector
             return $this->connection;
         }
 
+        $this->assertDriverPrerequisites();
         $this->loadUnifiedDatabaseLibrary();
 
         /** @var object $database */
@@ -173,6 +174,45 @@ final class UnifiedDatabaseConnector
 
         require_once $interfacePath;
         require_once $factoryPath;
+    }
+
+    /**
+     * Ensure required PDO extension is available before connection attempts.
+     */
+    private function assertDriverPrerequisites(): void
+    {
+        $requiredPdoExtension = match ($this->config->driver) {
+            'mysql' => 'pdo_mysql',
+            'postgres' => 'pdo_pgsql',
+            'mssql' => 'pdo_sqlsrv',
+            'firebird' => 'pdo_firebird',
+            'sqlite' => 'pdo_sqlite',
+            default => null,
+        };
+
+        if ($requiredPdoExtension === null || extension_loaded($requiredPdoExtension)) {
+            return;
+        }
+
+        $availablePdoDrivers = PDO::getAvailableDrivers();
+
+        if ($this->config->driver === 'mssql') {
+            $sqlsrvLoaded = extension_loaded('sqlsrv') ? 'yes' : 'no';
+
+            throw new RuntimeException(sprintf(
+                'Missing PHP driver for MSSQL. Enable extension "%s" (and usually "sqlsrv"), then restart PHP. Available PDO drivers: [%s]. sqlsrv loaded: %s.',
+                $requiredPdoExtension,
+                implode(', ', $availablePdoDrivers),
+                $sqlsrvLoaded,
+            ));
+        }
+
+        throw new RuntimeException(sprintf(
+            'Missing PHP driver for "%s". Enable extension "%s" and restart PHP. Available PDO drivers: [%s].',
+            $this->config->driver,
+            $requiredPdoExtension,
+            implode(', ', $availablePdoDrivers),
+        ));
     }
 }
 
