@@ -38,10 +38,6 @@ class ComposerStaticInitbc97f3b72eca3c7a0a6f5da656aadfbe
         array (
             'voku\\' => 5,
         ),
-        'U' =>
-        array (
-            'UnifiedAppointments\\' => 20,
-        ),
         'T' =>
         array (
             'Termwind\\' => 9,
@@ -123,6 +119,7 @@ class ComposerStaticInitbc97f3b72eca3c7a0a6f5da656aadfbe
         array (
             'Doctrine\\Inflector\\' => 19,
             'Doctrine\\Common\\Lexer\\' => 22,
+            'Dharmor\\Calixy\\' => 15,
         ),
         'C' =>
         array (
@@ -139,10 +136,6 @@ class ComposerStaticInitbc97f3b72eca3c7a0a6f5da656aadfbe
         'voku\\' =>
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
-        ),
-        'UnifiedAppointments\\' =>
-        array (
-            0 => __DIR__ . '/../..' . '/src',
         ),
         'Termwind\\' =>
         array (
@@ -368,6 +361,10 @@ class ComposerStaticInitbc97f3b72eca3c7a0a6f5da656aadfbe
         'Doctrine\\Common\\Lexer\\' =>
         array (
             0 => __DIR__ . '/..' . '/doctrine/lexer/src',
+        ),
+        'Dharmor\\Calixy\\' =>
+        array (
+            0 => __DIR__ . '/../..' . '/src',
         ),
         'Carbon\\Doctrine\\' =>
         array (
