@@ -64,7 +64,7 @@ final class StartupApplication
 
     private ?string $companyLogoDisplayUrl = null;
 
-    private string $applicationName = 'Calixy';
+    private string $applicationName = 'calixy';
 
     private string $applicationVersion = 'unknown';
 
@@ -294,7 +294,7 @@ final class StartupApplication
 
         $this->applicationName = AboutMetadataResolver::resolveName(
             $configuredApplicationName,
-            'Calixy',
+            'calixy',
         );
         $this->companyName = AboutMetadataResolver::resolveName(
             $storedCompanyName,
@@ -1176,7 +1176,7 @@ final class StartupApplication
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Calixy Startup Error</title>
+    <title>calixy Startup Error</title>
     <style>
         :root {
             {$vars}
@@ -1213,7 +1213,7 @@ final class StartupApplication
 </head>
 <body>
 <main>
-    <h1>Calixy could not start</h1>
+    <h1>calixy could not start</h1>
     <p>{$message}</p>
     <p>The starter workspace uses startup auto-bootstrap mode. For a custom deployment workflow, use <code>php artisan unified-appointments:install</code> after configuring your connection.</p>
 </main>

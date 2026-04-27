@@ -4,6 +4,9 @@
 --
 -- This script is safe to run on a first install and can be rerun to reset the
 -- application user's password and grants to the values below.
+-- It does not create application login accounts. Usernames are stored by
+-- Laravel migrations in the users.name column; run php artisan migrate --seed
+-- after this database exists.
 --
 -- Search/replace these defaults:
 --   calixy

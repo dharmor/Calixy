@@ -1,6 +1,9 @@
 -- Calixy Microsoft SQL Server bootstrap script
 -- Update the values below before running this file as a sysadmin or another login with equivalent rights.
 -- This script is written as a single batch so it works in runners that do not support GO separators.
+-- It does not create application login accounts. Usernames are stored by
+-- Laravel migrations in the users.name column; run php artisan migrate --seed
+-- after this database exists.
 
 SET NOCOUNT ON;
 

@@ -1,6 +1,9 @@
 -- Calixy PostgreSQL bootstrap script (psql variant).
 -- Run with psql as a superuser or another role that can create roles and databases.
 -- Update the values below before running this file.
+-- It does not create application login accounts. Usernames are stored by
+-- Laravel migrations in the users.name column; run php artisan migrate --seed
+-- after this database exists.
 
 \set database_name calixy
 \set database_user calixy_user

@@ -194,7 +194,7 @@ class UnifiedAppointmentsServiceProvider extends \Illuminate\Support\ServiceProv
         $configuredName = config('unified-appointments.ui.application_name');
         $aboutName = AboutMetadataResolver::resolveName(
             is_string($configuredName) ? $configuredName : null,
-            is_string(config('app.name')) ? config('app.name') : 'Calixy',
+            is_string(config('app.name')) ? config('app.name') : 'calixy',
         );
 
         AboutCommand::add($aboutName, fn (): array => [

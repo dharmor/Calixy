@@ -14,7 +14,7 @@ class InstallUnifiedAppointmentsCommand extends \Illuminate\Console\Command
         {--publish-config : Publish the package configuration file}
         {--publish-views : Publish the package views for customization}';
 
-    protected $description = 'Explicitly create Calixy tables deployments.';
+    protected $description = 'Explicitly create calixy tables deployments.';
 
     /**
      * Handle.
@@ -51,7 +51,7 @@ class InstallUnifiedAppointmentsCommand extends \Illuminate\Console\Command
         $this->prepareSqliteDatabaseIfNeeded($config);
         $scheduler->install();
 
-        $this->components->info('Calixy tables are ready.');
+        $this->components->info('calixy tables are ready.');
         $this->components->twoColumnDetail('Edition', $config->edition);
         $this->components->twoColumnDetail('Laravel connection', (string) ($config->connection ?? 'default'));
         $this->components->twoColumnDetail('Driver', $config->driver);

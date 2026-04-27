@@ -6,12 +6,14 @@ $autoloadPath = dirname(__DIR__) . '/vendor/autoload.php';
 $bootstrapPath = dirname(__DIR__) . '/bootstrap/app.php';
 $packageAutoloadPath = dirname(__DIR__) . '/bootstrap/package_autoload.php';
 
-if (is_file($autoloadPath) && is_file($bootstrapPath)) {
+if (is_file($autoloadPath)) {
     require $autoloadPath;
+}
 
+if (is_file($bootstrapPath) && class_exists(\Illuminate\Foundation\Application::class) && class_exists(\Illuminate\Http\Request::class)) {
     $app = require $bootstrapPath;
 
-    if ($app instanceof \Illuminate\Foundation\Application && class_exists(\Illuminate\Http\Request::class)) {
+    if ($app instanceof \Illuminate\Foundation\Application) {
         $app->handleRequest(\Illuminate\Http\Request::capture());
 
         return;
@@ -21,7 +23,7 @@ if (is_file($autoloadPath) && is_file($bootstrapPath)) {
 if (!is_file($packageAutoloadPath)) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Calixy package autoload file is missing.';
+    echo 'calixy package autoload file is missing.';
 
     return;
 }

@@ -4,6 +4,9 @@
 --
 -- This script is safe for a first install and can be rerun to recreate the
 -- application user with the password and grants shown below.
+-- It does not create application login accounts. Usernames are stored by
+-- Laravel migrations in the users.name column; run php artisan migrate --seed
+-- after this database exists.
 --
 -- Search/replace these defaults:
 --   calixy

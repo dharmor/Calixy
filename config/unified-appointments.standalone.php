@@ -50,7 +50,7 @@ return [
         'allow_theme_switcher' => true,
         'application_name' => env(
             'CALIXY_APPLICATION_NAME',
-            env('UNIFIED_APPOINTMENTS_APPLICATION_NAME', 'Calixy')
+            env('UNIFIED_APPOINTMENTS_APPLICATION_NAME', 'calixy')
         ),
         'version' => env(
             'CALIXY_VERSION',
@@ -58,7 +58,7 @@ return [
         ),
         'donationware_url' => env(
             'CALIXY_DONATIONWARE_URL',
-            env('UNIFIED_APPOINTMENTS_DONATIONWARE_URL', 'https://github.com/sponsors')
+            env('UNIFIED_APPOINTMENTS_DONATIONWARE_URL', '')
         ),
         'themes' => [
             'sunrise' => [

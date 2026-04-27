@@ -1,6 +1,9 @@
 -- Calixy MariaDB bootstrap / user reset script
 -- Use this to create or repair the Calixy MariaDB database, user password,
 -- and grants so they match the values in `.env`.
+-- It does not create application login accounts. Usernames are stored by
+-- Laravel migrations in the users.name column; run php artisan migrate --seed
+-- after this database exists.
 --
 -- Update the defaults below before running this file as a privileged MariaDB user.
 --

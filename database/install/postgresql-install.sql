@@ -1,6 +1,9 @@
 -- Calixy PostgreSQL bootstrap script (generic SQL editors).
 -- Use this file with pgAdmin, DBeaver, DataGrip, or similar tools.
 -- Run as a superuser or another role that can create roles and databases.
+-- It does not create application login accounts. Usernames are stored by
+-- Laravel migrations in the users.name column; run php artisan migrate --seed
+-- after this database exists.
 --
 -- Search/replace these defaults:
 --   calixy

@@ -22,7 +22,7 @@ class AboutController extends Controller
         $configuredVersion = config('unified-appointments.ui.version');
         $applicationName = AboutMetadataResolver::resolveName(
             is_string($configuredName) ? $configuredName : null,
-            is_string(config('app.name')) ? config('app.name') : 'Calixy',
+            is_string(config('app.name')) ? config('app.name') : 'calixy',
         );
         $logoUrl = config('unified-appointments.ui.logo_url');
         $packageRoot = dirname(__DIR__, 4);
@@ -42,6 +42,8 @@ class AboutController extends Controller
             $imagesPath,
         ]) ?? $this->defaultLogoDataUri($imagesPath);
 
+        $donationwareUrl = trim((string) config('unified-appointments.ui.donationware_url', ''));
+
         return view('unified-appointments::about', [
             'applicationName' => $applicationName,
             'logoUrl' => $resolvedLogoUrl,
@@ -50,7 +52,7 @@ class AboutController extends Controller
                 $packageRoot,
                 'calixy/unified-appointments',
             ),
-            'donationwareUrl' => (string) config('unified-appointments.ui.donationware_url', 'https://github.com/sponsors'),
+            'donationwareUrl' => $donationwareUrl !== '' ? $donationwareUrl : null,
         ]);
     }
 

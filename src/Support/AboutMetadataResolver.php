@@ -11,7 +11,7 @@ final class AboutMetadataResolver
 {
     public static function resolveName(?string $configuredName = null, ?string $fallbackName = null): string
     {
-        foreach ([$configuredName, $fallbackName, 'Calixy'] as $candidate) {
+        foreach ([$configuredName, $fallbackName, 'calixy'] as $candidate) {
             $candidate = self::stringOrNull($candidate);
 
             if ($candidate !== null) {
@@ -19,7 +19,7 @@ final class AboutMetadataResolver
             }
         }
 
-        return 'Calixy';
+        return 'calixy';
     }
 
     public static function resolveVersion(

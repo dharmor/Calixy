@@ -10,6 +10,10 @@
             font-family: Arial, "Helvetica Neue", sans-serif;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
@@ -21,23 +25,26 @@
         }
 
         .about-card {
-            width: min(100%, 640px);
+            width: min(100%, 680px);
             border: 1px solid #d4e2f3;
             border-radius: 24px;
             padding: 1.5rem;
             background: #ffffff;
             box-shadow: 0 18px 32px rgba(15, 40, 74, 0.10);
+            margin: 0 auto;
         }
 
         .brand {
             display: flex;
             align-items: center;
             gap: 1.1rem;
+            justify-content: center;
         }
 
         .logo-fallback {
-            width: 156px;
-            height: 104px;
+            width: 240px;
+            max-width: 100%;
+            height: 128px;
             border-radius: 24px;
             display: inline-grid;
             place-items: center;
@@ -49,26 +56,31 @@
         }
 
         .logo-image {
-            width: 156px;
-            height: 104px;
+            width: 260px;
+            max-width: 100%;
+            height: auto;
+            max-height: 160px;
             border-radius: 24px;
-            object-fit: cover;
+            object-fit: contain;
             object-position: center;
             border: 1px solid #d4e2f3;
             background: #fff;
-            padding: 0;
+            padding: 0.35rem;
             display: block;
             flex-shrink: 0;
         }
 
         .brand-copy {
             display: grid;
-            gap: 0.35rem;
+            gap: 0.8rem;
+            min-width: 0;
+            flex: 0 1 300px;
         }
 
         .brand-copy h1 {
             margin: 0;
-            font-size: clamp(1.9rem, 5vw, 2.45rem);
+            font-size: 1.15rem;
+            line-height: 1.3;
         }
 
         .brand-copy div {
@@ -76,7 +88,6 @@
         }
 
         .meta {
-            margin-top: 1rem;
             border: 1px solid #d4e2f3;
             border-radius: 16px;
             padding: 0.9rem 1rem;
@@ -114,6 +125,64 @@
             text-decoration: none;
             font-weight: 700;
         }
+
+        .page-actions {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-button {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 0.66rem 0.95rem;
+            background: #0b6ea8;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .logout-row {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .logout-button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.66rem 0.95rem;
+            background: #b91c1c;
+            color: #fff5f5;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 1rem;
+                place-items: start center;
+            }
+
+            .about-card {
+                padding: 1.1rem;
+            }
+
+            .brand {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .logo-image,
+            .logo-fallback {
+                width: 100%;
+            }
+
+            .brand-copy {
+                flex-basis: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -125,18 +194,30 @@
             <div class="logo-fallback" aria-hidden="true">CA</div>
         @endif
         <div class="brand-copy">
-            <h1>{{ $applicationName }}</h1>
-            <div>Unified scheduling and availability toolkit for Laravel.</div>
+            <h1>Scheduling and Availability Application</h1>
+            <section class="meta">
+                <div class="meta-label">Application Version</div>
+                <div class="meta-value">{{ $applicationName }}</div>
+                <div class="meta-subvalue">{{ $packageVersion }}</div>
+            </section>
         </div>
     </div>
 
-    <section class="meta">
-        <div class="meta-label">Application Version</div>
-        <div class="meta-value">{{ $applicationName }}</div>
-        <div class="meta-subvalue">{{ $packageVersion }}</div>
-    </section>
+    @if (!empty($donationwareUrl))
+        <a href="{{ $donationwareUrl }}" target="_blank" rel="noopener" class="donate">Support Donationware</a>
+    @endif
 
-    <a href="{{ $donationwareUrl }}" target="_blank" rel="noopener" class="donate">Support Donationware</a>
+    <div class="page-actions">
+        <a href="{{ route('program') }}" class="dashboard-button">Dashboard</a>
+        @auth
+        <div class="logout-row">
+            <form method="post" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="logout-button">Logout</button>
+            </form>
+        </div>
+        @endauth
+    </div>
 </main>
 </body>
 </html>

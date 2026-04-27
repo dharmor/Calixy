@@ -11,6 +11,8 @@ These scripts create a Calixy database and application user for each supported s
 
 Before running a script, update the default database name, user name, and password at the top of the file.
 
+Application login accounts are stored in Laravel's `users` table. The `users.name` column stores the username, alongside `email`, `password`, and `is_admin`. These SQL scripts do not create or seed application login accounts; run the Laravel migrations and seeders after the database exists.
+
 Use:
 
 - `mysql-install.sql` with MySQL
@@ -20,7 +22,7 @@ Use:
 - `postgresql-install-psql.sql` with `psql` (uses `\set`, `\gexec`, `\connect`)
 - `mssql-install.sql` with SQL Server Management Studio or `sqlcmd`
 
-After the database and user exist, point Calixy at that connection in `.env` and let Calixy create its tables on boot or with `php artisan unified-appointments:install`.
+After the database and user exist, point Calixy at that connection in `.env`, then run `php artisan migrate --seed` for the Laravel login tables and starter admin user. Calixy can create its appointment tables on boot or with `php artisan unified-appointments:install`.
 
 PostgreSQL note:
 

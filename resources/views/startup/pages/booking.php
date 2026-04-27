@@ -40,18 +40,6 @@
                             </label>
                         </form>
 
-                        <?php if ($slotPreview === []): ?>
-                            <div class="empty" style="margin-top: 1rem;">No suggested openings are visible in the current context. You can still try a time below, or move to Services to expand availability.</div>
-                        <?php else: ?>
-                            <div class="snapshot" style="margin-top: 1rem;">
-                                Suggested openings:
-                                <?= $escape(implode(', ', array_map(
-                                    static fn ($slot): string => $slot->startsAt->setTimezone(new DateTimeZone($appTimezone))->format('g:i A'),
-                                    $slotPreview,
-                                ))) ?>
-                            </div>
-                        <?php endif; ?>
-
                         <form method="post" class="list" style="margin-top: 1rem;">
                             <?= $contextFields ?>
                             <input type="hidden" name="action" value="book_appointment">

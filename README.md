@@ -30,7 +30,7 @@ It also ships with built-in UI themes:
 
 The package root now also includes a Laravel-style `public/index.php` entry point so there is a clear web start location inside the package source.
 When you open that starting page in the startup edition, it boots a fully functional SQLite-backed application with a left-side navigation shell, starter service data, a calendar view, weekly availability, booking, rescheduling, cancellations, blackout dates, and waitlist management.
-The startup edition also seeds a timezone catalog into SQLite so the selected system timezone is stored in the database instead of only in config.
+The startup edition also seeds a timezone catalog into SQLite from a local snapshot derived from Easy!Appointments `Timezones.php` so the selected system timezone is stored in the database instead of only in config.
 Locations and Team are now wired into the starter context as live filters, so the calendar, booking flow, appointments, waitlist, and setup forms can all be scoped to the selected location and booking owner.
 
 ## Install
@@ -40,7 +40,15 @@ Start from an existing Laravel app.
 For the default startup edition, just require the package and let it boot:
 
 ```bash
-composer require calixy/unified-appointments
+composer config repositories.calixy vcs https://github.com/dharmor/Calixy.git
+composer require calixy/unified-appointments:dev-main
+```
+
+If you are developing locally from a checked-out copy of this repository, use a path repository instead:
+
+```bash
+composer config repositories.calixy path ../Calixy
+composer require calixy/unified-appointments:dev-main
 ```
 
 On first boot, the package will create and use:
@@ -49,10 +57,51 @@ On first boot, the package will create and use:
 
 No `php artisan unified-appointments:install` step is required for that startup SQLite flow. The startup page is intended to work immediately from `public/index.php`.
 
-If you want Pro edition behavior or another database engine, publish the config and run the explicit install command:
+For this repository (standalone startup mode), run:
+
+```bash
+php -S 127.0.0.1:8000 -t public
+```
+
+Then open:
+
+`http://127.0.0.1:8000/`
+
+If you open `/unified-appointments/about`, that is the package About card, not the startup dashboard.
+
+Windows note: if your current directory is a UNC path (for example `\\server\share\...`), PHP's built-in server may fail with `Directory public does not exist.` because it falls back to `C:\Windows`.
+Use a mapped drive path instead (for example `Y:\Github\Calixy`) before running the command.
+
+## Package Release Flow
+
+Calixy should be published as a Composer package (`calixy/unified-appointments`) and used from a separate Laravel app.
+
+This repository is configured as package-first:
+
+- do not commit `vendor/`
+- do not commit `.env`
+- do not commit `composer.lock` for this library package
+- keep local runtime settings in `.env` and share defaults via `.env.example`
+
+Release steps:
+
+```bash
+composer validate --strict
+git tag v0.1.0
+git push origin main --tags
+```
+
+Then require it from your starter/demo Laravel app:
 
 ```bash
 composer require calixy/unified-appointments
+```
+
+If you want Pro edition behavior or another database engine, publish the config and run the explicit install command:
+
+```bash
+composer config repositories.calixy vcs https://github.com/dharmor/Calixy.git
+composer require calixy/unified-appointments:dev-main
 php artisan vendor:publish --tag=unified-appointments-config
 php artisan unified-appointments:install
 ```

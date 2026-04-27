@@ -3,6 +3,28 @@ $showAppointmentDialog = $flash !== null
     && ($flash['message'] ?? '') !== ''
     && ($flash['type'] ?? '') === 'success'
     && ($flash['action'] ?? '') === 'book_appointment';
+
+$resolveRoute = static function (string $name, string $fallback): string {
+    if (!function_exists('route')) {
+        return $fallback;
+    }
+
+    try {
+        return route($name);
+    } catch (Throwable) {
+        return $fallback;
+    }
+};
+
+$dashboardUrl = $resolveRoute('dashboard', '/dashboard');
+$aboutUrl = $resolveRoute('about', '/about');
+$adminUsersUrl = $resolveRoute('admin.users.index', '/admin/users');
+$isAdminUser = false;
+
+if (function_exists('auth')) {
+    $authUser = auth()->user();
+    $isAdminUser = $authUser !== null && (bool) ($authUser->is_admin ?? false);
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -1004,6 +1026,16 @@ $showAppointmentDialog = $flash !== null
                         <div class="detail-label">Email</div>
                         <div class="detail-value"><?= $emailNotification !== null && (int) ($emailNotification['is_enabled'] ?? 0) === 1 ? 'Enabled' : 'Disabled' ?></div>
                     </div>
+                </div>
+            </div>
+
+            <div class="sidebar-block">
+                <div class="sidebar-title">Application</div>
+                <div class="quick-links">
+                    <a class="quick-link" href="<?= $escape($dashboardUrl) ?>">Dashboard</a>
+                    <?php if ($isAdminUser): ?>
+                        <a class="quick-link" href="<?= $escape($adminUsersUrl) ?>">Users</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
