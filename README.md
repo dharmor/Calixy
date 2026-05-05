@@ -3,6 +3,8 @@
 [![Website](https://img.shields.io/badge/Website-www.daves--corner.com-0b5cad?style=for-the-badge)](https://www.daves-corner.com)
 [![Test it live](https://img.shields.io/badge/Test%20it%20live-Calixy%20Login-198754?style=for-the-badge)](https://dev.daves-corner.com/live/calixy/public/index.php/login)
 
+If there is a feature that could be improved or added, or even just a comment, contact me at [dave@daves-corner.com](mailto:dave@daves-corner.com).
+
 `Calixy` is a Laravel-compatible appointment and availability package that uses the Unified Databases connection layer instead of Laravel's native database manager.
 
 The package now ships with two setup modes:
@@ -283,4 +285,3 @@ Run the included smoke test from the package root:
 ```bash
 php tests/smoke.php
 ```
-
