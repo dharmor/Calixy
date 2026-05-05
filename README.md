@@ -1,5 +1,8 @@
 # Calixy
 
+[![Website](https://img.shields.io/badge/Website-www.daves--corner.com-0b5cad?style=for-the-badge)](https://www.daves-corner.com)
+[![Test it live](https://img.shields.io/badge/Test%20it%20live-Calixy%20Login-198754?style=for-the-badge)](https://dev.daves-corner.com/live/calixy/public/index.php/login)
+
 `Calixy` is a Laravel-compatible appointment and availability package that uses the Unified Databases connection layer instead of Laravel's native database manager.
 
 The package now ships with two setup modes:
@@ -105,6 +108,8 @@ composer require calixy/unified-appointments:dev-main
 php artisan vendor:publish --tag=unified-appointments-config
 php artisan unified-appointments:install
 ```
+
+The SQL scripts needed for manual database setup are located in [`database/install`](https://github.com/dharmor/Calixy/tree/main/database/install).
 
 Optional:
 
