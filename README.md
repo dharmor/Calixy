@@ -77,6 +77,31 @@ If you open `/unified-appointments/about`, that is the package About card, not t
 Windows note: if your current directory is a UNC path (for example `\\server\share\...`), PHP's built-in server may fail with `Directory public does not exist.` because it falls back to `C:\Windows`.
 Use a mapped drive path instead (for example `Y:\Github\Calixy`) before running the command.
 
+## Docker Install
+
+On Windows with Docker Desktop running, install and start Calixy with:
+
+```powershell
+.\scripts\docker-install.ps1
+```
+
+The script builds a self-contained PHP 8.5 / Apache 2.4 container, starts a MySQL 9.7 container, installs Composer and NPM dependencies,
+builds Vite assets, runs Laravel migrations and seeders against MySQL, and starts Calixy at:
+
+`http://localhost:8084`
+
+Use a different port:
+
+```powershell
+.\scripts\docker-install.ps1 -Port 8081
+```
+
+Recreate the Docker containers and MySQL volume before installing:
+
+```powershell
+.\scripts\docker-install.ps1 -Fresh
+```
+
 ## Package Release Flow
 
 Calixy should be published as a Composer package (`calixy/unified-appointments`) and used from a separate Laravel app.

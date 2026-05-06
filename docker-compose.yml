@@ -1,0 +1,46 @@
+services:
+  calixy:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: calixy-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${CALIXY_DOCKER_PORT:-8084}:80"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: "http://localhost:${CALIXY_DOCKER_PORT:-8084}"
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: calixy
+      DB_USERNAME: calixy
+      DB_PASSWORD: calixy
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:9.7
+    container_name: calixy-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: calixy_root
+      MYSQL_DATABASE: calixy
+      MYSQL_USER: calixy
+      MYSQL_PASSWORD: calixy
+    volumes:
+      - calixy-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-ucalixy", "-pcalixy"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  calixy-mysql-data:
