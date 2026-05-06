@@ -42,6 +42,22 @@ Locations and Team are now wired into the starter context as live filters, so th
 
 Start from an existing Laravel app.
 
+If you want to install and work with this repository directly, clone it first and run Composer from inside the cloned project folder:
+
+```bash
+git clone https://github.com/dharmor/Calixy.git
+cd Calixy
+composer install
+```
+
+Composer must be run from the directory that contains `composer.json`. If you see:
+
+```text
+File "./composer.json" cannot be found in the current directory
+```
+
+you are in the wrong folder. Change into the Calixy project directory first, then run `composer install` again.
+
 For the default startup edition, just require the package and let it boot:
 
 ```bash
